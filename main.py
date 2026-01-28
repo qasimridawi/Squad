@@ -4,38 +4,42 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
-from sqlalchemy import create_engine, Column, Integer, String, ForeignKey
+from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship
 from pydantic import BaseModel
 
 # --- DATABASE ---
-SQLALCHEMY_DATABASE_URL = "sqlite:///./squad_v3.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+database_url = os.environ.get("DATABASE_URL")
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace("postgres://", "postgresql://", 1)
+if not database_url:
+    database_url = "sqlite:///./squad_v3.db"
+
+engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
-# NOTE: No "User" class here!
-
 class Hangout(Base):
-    __tablename__ = "hangouts"
+    __tablename__ = "hangouts_v2"  # New table name to force update
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     location = Column(String)
     host_username = Column(String)
+    image_data = Column(Text) # New column for the image code
     participants = relationship("Participant", back_populates="hangout", cascade="all, delete")
     messages = relationship("Message", back_populates="hangout", cascade="all, delete")
 
 class Participant(Base):
-    __tablename__ = "participants"
+    __tablename__ = "participants_v2"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v2.id"))
     username = Column(String)
     hangout = relationship("Hangout", back_populates="participants")
 
 class Message(Base):
-    __tablename__ = "messages"
+    __tablename__ = "messages_v2"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v2.id"))
     username = Column(String)
     text = Column(String)
     hangout = relationship("Hangout", back_populates="messages")
@@ -50,6 +54,7 @@ class HangoutSchema(BaseModel):
     title: str
     location: str
     host_username: str
+    image_data: str | None = None
 
 class JoinSchema(BaseModel):
     username: str
@@ -60,18 +65,7 @@ class MessageSchema(BaseModel):
     hangout_id: int
     text: str
 
-# --- BOT BRAIN ---
-BOT_IDEAS = [
-    "How about Truth or Dare?",
-    "Someone should bring snacks!",
-    "Let's make a playlist.",
-    "Who is paying for the taxi?",
-    "We should take a group selfie later.",
-    "Don't forget to charge your phones!",
-    "Is everyone here yet?"
-]
-
-# --- ENDPOINTS ---
+BOT_IDEAS = ["Truth or Dare?", "Snacks?", "Selfie time!", "ETA?", "Music?"]
 
 @app.get("/")
 def read_root():
@@ -80,7 +74,12 @@ def read_root():
 @app.post("/create_hangout/")
 def create_hangout(hangout: HangoutSchema):
     db = SessionLocal()
-    new_h = Hangout(title=hangout.title, location=hangout.location, host_username=hangout.host_username)
+    new_h = Hangout(
+        title=hangout.title, 
+        location=hangout.location, 
+        host_username=hangout.host_username,
+        image_data=hangout.image_data
+    )
     db.add(new_h)
     db.commit()
     db.add(Participant(hangout_id=new_h.id, username=hangout.host_username))
@@ -111,13 +110,10 @@ def send_message(msg: MessageSchema):
     new_msg = Message(hangout_id=msg.hangout_id, username=msg.username, text=msg.text)
     db.add(new_msg)
     db.commit()
-
     if "@squadbot" in msg.text.lower():
         bot_reply = random.choice(BOT_IDEAS)
-        bot_msg = Message(hangout_id=msg.hangout_id, username="SquadBot 🤖", text=bot_reply)
-        db.add(bot_msg)
+        db.add(Message(hangout_id=msg.hangout_id, username="SquadBot 🤖", text=bot_reply))
         db.commit()
-
     db.close()
     return {"message": "Sent"}
 
@@ -134,6 +130,7 @@ def get_feed():
             "title": h.title,
             "location": h.location,
             "host": h.host_username,
+            "image_data": h.image_data,
             "attendees": names,
             "count": len(names),
             "messages": msgs
