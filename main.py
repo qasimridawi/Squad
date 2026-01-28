@@ -1,6 +1,7 @@
 import uvicorn
 import random
 import os
+from typing import Optional
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -12,6 +13,7 @@ from pydantic import BaseModel
 database_url = os.environ.get("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
+
 if not database_url:
     database_url = "sqlite:///./squad_v3.db"
 
@@ -20,12 +22,12 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 class Hangout(Base):
-    __tablename__ = "hangouts_v2"  # New table name to force update
+    __tablename__ = "hangouts_v2"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     location = Column(String)
     host_username = Column(String)
-    image_data = Column(Text) # New column for the image code
+    image_data = Column(Text)
     participants = relationship("Participant", back_populates="hangout", cascade="all, delete")
     messages = relationship("Message", back_populates="hangout", cascade="all, delete")
 
@@ -50,11 +52,12 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# FIXED: Using Optional[] instead of | for better compatibility
 class HangoutSchema(BaseModel):
     title: str
     location: str
     host_username: str
-    image_data: str | None = None
+    image_data: Optional[str] = None
 
 class JoinSchema(BaseModel):
     username: str
