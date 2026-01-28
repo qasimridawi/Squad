@@ -4,8 +4,16 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Squad App</title>
+    
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#050505">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3061/3061341.png">
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
+        /* PASTE YOUR EXISTING CSS HERE (Or just keep the file as is if you only replaced the head tags) */
         :root {
             --bg-color: #050505;
             --card-bg: rgba(255, 255, 255, 0.05);
@@ -23,7 +31,7 @@
         .card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 20px; margin: 20px; position: relative; }
         .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
         
-        /* NEW MAP BUTTON STYLE */
+        /* Map Link Style */
         .location-row { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
         .location-text { color: #aaa; font-size: 14px; }
         .map-btn { 
