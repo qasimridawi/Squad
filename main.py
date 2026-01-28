@@ -21,6 +21,8 @@ engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+# NOTE: The "User" class is completely GONE. 
+
 class Hangout(Base):
     __tablename__ = "hangouts_v2"
     id = Column(Integer, primary_key=True, index=True)
@@ -52,7 +54,6 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# FIXED: Using Optional[] instead of | for better compatibility
 class HangoutSchema(BaseModel):
     title: str
     location: str
@@ -68,7 +69,7 @@ class MessageSchema(BaseModel):
     hangout_id: int
     text: str
 
-BOT_IDEAS = ["Truth or Dare?", "Snacks?", "Selfie time!", "ETA?", "Music?"]
+BOT_IDEAS = ["Truth or Dare?", "Snacks?", "Selfie time?", "ETA?", "Music?"]
 
 @app.get("/")
 def read_root():
