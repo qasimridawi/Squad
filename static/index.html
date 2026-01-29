@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V6.2</title>
+    <title>Squad V6.3</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -53,7 +53,7 @@
         .msg-row { display: flex; gap: 8px; align-items: flex-end; }
         .msg-row.mine { flex-direction: row-reverse; }
         .msg-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
-        .msg-bubble { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; color: white; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
+        .msg-bubble { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; max-width: 75%; line-height: 1.4; word-wrap: break-word; color: #fff; }
         audio { height: 30px; max-width: 180px; }
 
         .chat-input-row { display: flex; gap: 5px; align-items: center; }
@@ -79,7 +79,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V6.2</h1>
+            <h1 style="text-align: center; margin: 0;">Squad V6.3</h1>
             <p style="text-align: center; color: #666; font-size: 14px;">Stable Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
@@ -205,7 +205,6 @@
             });
         }
 
-        // --- CORE LOGIC ---
         function resizeImage(file, w, h) {
             return new Promise((resolve) => {
                 if(!file) resolve(null);
@@ -325,13 +324,14 @@
             </div>`;
         }
 
+        // --- SELF-HEALING SOCKET ---
         function toggleChat(id) {
             const el = document.getElementById(`chat-${id}`);
             el.style.display = el.style.display==='block' ? 'none' : 'block';
             if(el.style.display==='block') {
-                // FIXED WEBSOCKET CONNECTION
-                if(sockets[id]) { sockets[id].close(); } // Reset old
+                if(sockets[id]) sockets[id].close(); 
                 const ws = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${id}?token=${token}`);
+                ws.onopen = () => console.log('WS Open');
                 ws.onmessage = e => {
                     const d = JSON.parse(e.data);
                     if(d.type === 'status') { onlineUsers = d.online_users; loadFeed(); }
@@ -340,7 +340,13 @@
                         if(b) { b.innerHTML += renderMsg(d); b.scrollTop = b.scrollHeight; }
                     }
                 };
-                ws.onclose = () => { alert('Chat Disconnected. Try Reloading.'); };
+                ws.onclose = (e) => {
+                    // AUTO-FIX: If socket closes due to auth (1008), Logout.
+                    if (e.code === 1008) {
+                        alert("Session Expired. Logging you out to fix it.");
+                        logout();
+                    }
+                };
                 sockets[id] = ws;
             }
         }
