@@ -7,3 +7,4 @@ typing-extensions
 passlib[bcrypt]
 python-multipart
 python-jose
+bcrypt
