@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V4</title>
+    <title>Squad V4.1</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -111,9 +111,8 @@
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
-        let sockets = {}; // Store active WebSockets
+        let sockets = {}; 
 
-        // Init
         if (!token) document.getElementById('login-modal').style.display = 'flex';
         else {
             updateBadge();
@@ -126,17 +125,50 @@
             if (isAdmin) document.getElementById('my-name').innerText += " (ADMIN)";
         }
 
-        function previewAvatar(input) {
+        async function previewAvatar(input) {
             const file = input.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    document.getElementById('reg-avatar-preview').src = e.target.result;
-                    document.getElementById('reg-avatar-preview').style.display = 'block';
-                    document.getElementById('avatar-label').innerText = "Change Photo";
-                }
-                reader.readAsDataURL(file);
+                // Resize for preview
+                const resized = await resizeImage(file, 200, 200); 
+                document.getElementById('reg-avatar-preview').src = resized;
+                document.getElementById('reg-avatar-preview').style.display = 'block';
+                document.getElementById('avatar-label').innerText = "Change Photo";
             }
+        }
+
+        // --- COMPRESSION ENGINE ---
+        function resizeImage(file, maxWidth, maxHeight) {
+            return new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.src = event.target.result;
+                    img.onload = () => {
+                        const elem = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxWidth) {
+                                height *= maxWidth / width;
+                                width = maxWidth;
+                            }
+                        } else {
+                            if (height > maxHeight) {
+                                width *= maxHeight / height;
+                                height = maxHeight;
+                            }
+                        }
+                        elem.width = width;
+                        elem.height = height;
+                        const ctx = elem.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        // Compress to JPEG 70% quality
+                        resolve(elem.toDataURL('image/jpeg', 0.7));
+                    };
+                };
+            });
         }
 
         async function register() {
@@ -147,7 +179,10 @@
             if(!user || !pass) return alert("Fill user/pass!");
             
             let avatarData = null;
-            if (fileInput.files.length > 0) avatarData = await toBase64(fileInput.files[0]);
+            if (fileInput.files.length > 0) {
+                // Shrink Avatar to 150x150 (Tiny!)
+                avatarData = await resizeImage(fileInput.files[0], 150, 150);
+            }
 
             const res = await fetch('/register', {
                 method: 'POST',
@@ -174,6 +209,7 @@
                 currentAvatar = data.avatar;
                 isAdmin = data.is_admin;
                 
+                // Safe Storage (Avatar is now tiny, so it won't crash)
                 localStorage.setItem('squad_token', token);
                 localStorage.setItem('squad_user', currentUser);
                 localStorage.setItem('squad_avatar', currentAvatar || '');
@@ -187,7 +223,6 @@
 
         function logout() { localStorage.clear(); location.reload(); }
 
-        // --- APP LOGIC ---
         function openCreate() { document.getElementById('create-modal').style.display = 'flex'; }
         function closeCreate() { document.getElementById('create-modal').style.display = 'none'; }
 
@@ -196,7 +231,10 @@
             const loc = document.getElementById('new-loc').value;
             const fileInput = document.getElementById('new-img');
             let imgData = null;
-            if (fileInput.files.length > 0) imgData = await toBase64(fileInput.files[0]);
+            if (fileInput.files.length > 0) {
+                // Resize Event Cover to 800px width (Good quality but small size)
+                imgData = await resizeImage(fileInput.files[0], 800, 800);
+            }
 
             await fetch('/create_hangout/', {
                 method: 'POST',
@@ -214,8 +252,6 @@
             const data = await response.json();
             const feedDiv = document.getElementById('feed');
             
-            // Preserve chat areas if they exist, otherwise rebuild
-            // To simplify, we rebuild but check if chat was open
             const oldOpenChats = {};
             document.querySelectorAll('.chat-area').forEach(el => {
                 if(el.style.display === 'block') oldOpenChats[el.id] = true;
@@ -229,13 +265,11 @@
                 const canDelete = isHost || isAdmin;
                 const hasImage = h.image_data ? 'show' : '';
                 
-                // Attendees HTML
                 let facesHtml = '';
                 h.attendees.forEach(a => {
                     facesHtml += `<img src="${a.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="attendee-face">`;
                 });
 
-                // Messages HTML (Pre-load)
                 let msgsHtml = '';
                 h.messages.forEach(m => msgsHtml += renderMsg(m));
 
@@ -267,9 +301,8 @@
                 `;
                 feedDiv.appendChild(card);
                 
-                // Restore Open Chat
                 if (oldOpenChats[`chat-${h.id}`]) {
-                    toggleChat(h.id); // Re-open and connect WS
+                    toggleChat(h.id); 
                 }
             });
         }
@@ -292,24 +325,18 @@
         function toggleChat(id) {
             const chatDiv = document.getElementById(`chat-${id}`);
             const isHidden = chatDiv.style.display === 'none' || chatDiv.style.display === '';
-            
             chatDiv.style.display = isHidden ? 'block' : 'none';
-            
             if (isHidden) {
                 connectWebSocket(id);
-                // Scroll to bottom
                 const box = document.getElementById(`msg-box-${id}`);
                 box.scrollTop = box.scrollHeight;
             }
         }
 
         function connectWebSocket(id) {
-            if (sockets[id]) return; // Already connected
-
-            // Secure WS connection (wss:// on cloud, ws:// on local)
+            if (sockets[id]) return;
             const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
             const wsUrl = `${protocol}://${window.location.host}/ws/${id}?token=${token}`;
-            
             const ws = new WebSocket(wsUrl);
             ws.onmessage = (event) => {
                 const msg = JSON.parse(event.data);
@@ -332,7 +359,7 @@
 
         async function join(id) {
             await fetch(`/join_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} });
-            loadFeed(); // Refresh to show face
+            loadFeed(); 
         }
 
         async function deleteSquad(id) {
@@ -341,13 +368,6 @@
                 loadFeed();
             }
         }
-
-        const toBase64 = file => new Promise((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result);
-            reader.onerror = error => reject(error);
-        });
     </script>
 </body>
 </html>
