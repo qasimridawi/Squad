@@ -17,8 +17,6 @@
 
         .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; margin: 20px; position: relative; overflow: hidden;}
         .title { font-size: 20px; font-weight: bold; margin-bottom: 5px; }
-        
-        /* IMAGE STYLE */
         .event-img { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; margin-bottom: 15px; border: 1px solid var(--border); display: none; }
         .event-img.show { display: block; }
 
@@ -32,7 +30,6 @@
         .btn-chat { background: #333; color: white; }
         .btn-delete { position: absolute; top: 15px; right: 15px; background: transparent; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; }
 
-        /* CHAT */
         .chat-area { display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
         .messages { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
         .msg { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; align-self: flex-start; max-width: 80%; }
@@ -41,36 +38,32 @@
         .chat-input-row { display: flex; gap: 5px; }
         .chat-input { flex: 1; background: black; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 8px; }
 
-        /* MODALS */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; display: none; flex-direction: column; justify-content: center; align-items: center; }
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .modal-box { width: 85%; max-width: 350px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         .modal-input { padding: 15px; background: #222; border: none; color: white; border-radius: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
-        .file-label { background: #222; padding: 15px; border-radius: 10px; text-align: center; color: #888; cursor: pointer; border: 1px dashed #555; }
-        
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: linear-gradient(135deg, #FF0080, #7928CA); border-radius: 50%; border: none; color: white; font-size: 30px; box-shadow: 0 10px 30px rgba(121, 40, 202, 0.5); cursor: pointer; }
+        .file-label { background: #222; padding: 15px; border-radius: 10px; text-align: center; color: #888; cursor: pointer; border: 1px dashed #555; }
     </style>
 </head>
 <body>
 
-    <div id="login-modal" class="modal" style="display: flex;">
+    <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h2 style="text-align: center; margin: 0;">Welcome</h2>
-            <input type="text" id="username-input" class="modal-input" placeholder="Your Name">
-            <button class="btn btn-join" onclick="login()">Enter</button>
+            <h1 style="text-align: center; margin: 0;">Squad</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Sign in to join the party</p>
+            <input type="text" id="login-user" class="modal-input" placeholder="Username">
+            <input type="password" id="login-pass" class="modal-input" placeholder="Password">
+            <button class="btn btn-join" onclick="login()">Login</button>
+            <button class="btn btn-chat" onclick="register()">Create Account</button>
         </div>
     </div>
 
-    <div id="create-modal" class="modal">
+    <div id="create-modal" class="modal" style="display: none;">
         <div class="modal-box">
             <h2 style="text-align: center; margin: 0;">New Squad</h2>
-            <input type="text" id="new-title" class="modal-input" placeholder="What's the plan?">
-            <input type="text" id="new-loc" class="modal-input" placeholder="Where? (City/Place)">
-            
-            <label class="file-label">
-                📷 Upload Photo (Optional)
-                <input type="file" id="new-img" style="display: none;" accept="image/*">
-            </label>
-
+            <input type="text" id="new-title" class="modal-input" placeholder="Title">
+            <input type="text" id="new-loc" class="modal-input" placeholder="Location">
+            <label class="file-label">📷 Upload Photo <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
             <div class="btn-row">
                 <button class="btn btn-chat" onclick="closeCreate()">Cancel</button>
                 <button class="btn btn-join" onclick="submitCreate()">Create</button>
@@ -80,31 +73,61 @@
 
     <header>
         <h1>Squad</h1>
-        <div id="user-badge">Guest</div>
+        <div id="user-badge" onclick="logout()">Guest</div>
     </header>
 
     <div id="feed"></div>
     <button class="fab" onclick="openCreate()">+</button>
 
     <script>
+        let token = localStorage.getItem('squad_token');
         let currentUser = localStorage.getItem('squad_user');
         let openChatId = null;
 
-        if (currentUser) {
-            document.getElementById('login-modal').style.display = 'none';
+        if (!token) document.getElementById('login-modal').style.display = 'flex';
+        else {
             document.getElementById('user-badge').innerText = currentUser;
             loadFeed();
         }
 
-        function login() {
-            const input = document.getElementById('username-input').value;
-            if (input) {
-                currentUser = input;
-                localStorage.setItem('squad_user', currentUser);
+        async function register() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            if(!user || !pass) return alert("Fill everything!");
+            
+            const res = await fetch('/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: user, password: pass})
+            });
+            if(res.ok) { alert("Created! Now log in."); }
+            else { alert("Username taken!"); }
+        }
+
+        async function login() {
+            const user = document.getElementById('login-user').value;
+            const pass = document.getElementById('login-pass').value;
+            const formData = new URLSearchParams();
+            formData.append('username', user);
+            formData.append('password', pass);
+
+            const res = await fetch('/token', { method: 'POST', body: formData });
+            const data = await res.json();
+            
+            if(res.ok) {
+                token = data.access_token;
+                currentUser = user;
+                localStorage.setItem('squad_token', token);
+                localStorage.setItem('squad_user', user);
                 document.getElementById('login-modal').style.display = 'none';
-                document.getElementById('user-badge').innerText = currentUser;
+                document.getElementById('user-badge').innerText = user;
                 loadFeed();
-            }
+            } else { alert("Wrong password!"); }
+        }
+
+        function logout() {
+            localStorage.clear();
+            location.reload();
         }
 
         function openCreate() { document.getElementById('create-modal').style.display = 'flex'; }
@@ -114,34 +137,18 @@
             const title = document.getElementById('new-title').value;
             const loc = document.getElementById('new-loc').value;
             const fileInput = document.getElementById('new-img');
-            
-            if (!title) return alert("Title required!");
-
             let imgData = null;
-            if (fileInput.files.length > 0) {
-                // Convert Image to Base64 Text
-                imgData = await toBase64(fileInput.files[0]);
-            }
+            if (fileInput.files.length > 0) imgData = await toBase64(fileInput.files[0]);
 
             await fetch('/create_hangout/', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ 
-                    title: title, 
-                    location: loc, 
-                    host_username: currentUser,
-                    image_data: imgData
-                })
+                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({ title, location: loc, image_data: imgData })
             });
-
             closeCreate();
-            document.getElementById('new-title').value = '';
-            document.getElementById('new-loc').value = '';
-            fileInput.value = '';
             loadFeed();
         }
 
-        // Helper to convert image file to text code
         const toBase64 = file => new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -150,9 +157,9 @@
         });
 
         async function loadFeed() {
-            if (document.activeElement.tagName === 'INPUT' && document.activeElement.type === 'text') return;
-            
-            const response = await fetch('/hangouts/');
+            if(!token) return;
+            const response = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
+            if(response.status === 401) logout();
             const data = await response.json();
             const feedDiv = document.getElementById('feed');
             feedDiv.innerHTML = ''; 
@@ -160,89 +167,58 @@
             data.feed.reverse().forEach(h => {
                 const isHost = (h.host === currentUser);
                 const isGoing = h.attendees.includes(currentUser);
-                const isChatOpen = (h.id === openChatId); 
-
+                const isChatOpen = (h.id === openChatId);
                 let msgsHtml = '';
-                h.messages.forEach(m => {
-                    const isMine = m.user === currentUser;
-                    const isBot = m.user === "SquadBot 🤖";
-                    msgsHtml += `<div class="msg ${isMine ? 'mine' : ''} ${isBot ? 'bot' : ''}"><b>${m.user}</b>${m.text}</div>`;
-                });
-
-                const mapLink = `https://yandex.ru/maps/?text=${encodeURIComponent(h.location)}`;
+                h.messages.forEach(m => msgsHtml += `<div class="msg ${m.user === currentUser ? 'mine' : ''} ${m.user.includes('Bot') ? 'bot' : ''}"><b>${m.user}</b>${m.text}</div>`);
                 const hasImage = h.image_data ? 'show' : '';
 
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
                     ${isHost ? `<button class="btn-delete" onclick="deleteSquad(${h.id})">🗑️</button>` : ''}
-                    
                     <img src="${h.image_data || ''}" class="event-img ${hasImage}">
-                    
                     <div class="title">${h.title}</div>
-                    
-                    <div class="location-row">
-                        <span style="color:#aaa; font-size:14px">📍 ${h.location}</span>
-                        <a href="${mapLink}" target="_blank" class="map-btn">🗺️ Map</a>
-                    </div>
-
+                    <div class="location-row"><span style="color:#aaa; font-size:14px">📍 ${h.location}</span></div>
                     <div class="attendees">👥 ${h.count} Going: ${h.attendees.join(", ")}</div>
-                    
                     <div class="btn-row">
                         ${!isGoing ? `<button class="btn btn-join" onclick="join(${h.id})">Join</button>` : '<button class="btn btn-join" style="opacity:0.5">Joined</button>'}
                         <button class="btn btn-chat" onclick="toggleChat(${h.id})">💬 Chat</button>
                     </div>
-
                     <div id="chat-${h.id}" class="chat-area" style="display: ${isChatOpen ? 'block' : 'none'}">
                         <div class="messages" id="msg-box-${h.id}">${msgsHtml}</div>
                         <div class="chat-input-row">
-                            <input type="text" class="chat-input" id="input-${h.id}" placeholder="Say something...">
+                            <input type="text" class="chat-input" id="input-${h.id}" placeholder="...">
                             <button class="btn btn-chat" style="flex:0" onclick="send(${h.id})">➤</button>
                         </div>
-                    </div>
-                `;
+                    </div>`;
                 feedDiv.appendChild(card);
-                if (isChatOpen) {
-                    const msgBox = document.getElementById(`msg-box-${h.id}`);
-                    msgBox.scrollTop = msgBox.scrollHeight;
-                }
             });
         }
 
         async function join(id) {
-            await fetch('/join_hangout/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username: currentUser, hangout_id: id })
-            });
+            await fetch(`/join_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} });
             loadFeed();
         }
 
         async function deleteSquad(id) {
-            if (confirm("Delete event?")) {
-                await fetch(`/delete_hangout/${id}`, { method: 'DELETE' });
+            if (confirm("Delete?")) {
+                await fetch(`/delete_hangout/${id}`, { method: 'DELETE', headers: {'Authorization': `Bearer ${token}`} });
                 loadFeed();
             }
         }
 
-        function toggleChat(id) {
-            openChatId = (openChatId === id) ? null : id;
-            loadFeed(); 
-        }
+        function toggleChat(id) { openChatId = (openChatId === id) ? null : id; loadFeed(); }
 
         async function send(id) {
             const input = document.getElementById(`input-${id}`);
             if (input.value) {
                 await fetch('/send_message/', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ username: currentUser, hangout_id: id, text: input.value })
+                    method: 'POST', headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                    body: JSON.stringify({ hangout_id: id, text: input.value })
                 });
-                input.value = ''; 
-                loadFeed(); 
+                input.value = ''; loadFeed();
             }
         }
-        
         setInterval(loadFeed, 3000);
     </script>
 </body>
