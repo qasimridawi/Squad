@@ -1,4 +1,5 @@
 {
+    "id": "squad-social-v6",
     "short_name": "Squad",
     "name": "Squad Social",
     "icons": [
@@ -14,6 +15,7 @@
         }
     ],
     "start_url": "/",
+    "scope": "/",
     "background_color": "#050505",
     "display": "standalone",
     "theme_color": "#050505",
