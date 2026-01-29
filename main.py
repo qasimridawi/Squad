@@ -16,9 +16,10 @@ from jose import JWTError, jwt
 # --- SECURITY CONFIG ---
 SECRET_KEY = "squad-secret-key-change-me"
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 10080 # 7 days
+ACCESS_TOKEN_EXPIRE_MINUTES = 10080 
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# FIXED: Using pbkdf2_sha256 which is built-in and won't crash
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE ---
