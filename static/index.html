@@ -3,8 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V4.5</title>
-    <link rel="manifest" href="/static/manifest.json">
+    <title>Squad V4.6</title> <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
@@ -49,7 +48,7 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V4.5</h1>
+            <h1 style="text-align: center; margin: 0;">Squad V4.6</h1>
             <p style="text-align: center; color: #666; font-size: 14px;">God Mode Edition</p>
             
             <img id="reg-avatar-preview" class="preview-img">
@@ -98,6 +97,9 @@
         let currentAvatar = localStorage.getItem('squad_avatar');
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let sockets = {}; 
+        
+        // GLOBAL VARIABLE TO HOLD THE FILE
+        let selectedFileGlobal = null;
 
         if (!token) document.getElementById('login-modal').style.display = 'flex';
         else { updateBadge(); loadFeed(); }
@@ -132,6 +134,8 @@
         async function previewAvatar(input) {
             const file = input.files[0];
             if (file) {
+                // SAVE FILE TO GLOBAL VARIABLE IMMEDIATELY
+                selectedFileGlobal = file;
                 const resized = await resizeImage(file, 200, 200); 
                 document.getElementById('reg-avatar-preview').src = resized;
                 document.getElementById('reg-avatar-preview').style.display = 'block';
@@ -143,14 +147,13 @@
             try {
                 const user = document.getElementById('login-user').value;
                 const pass = document.getElementById('login-pass').value;
-                const fileInput = document.getElementById('hero-avatar');
                 
-                if (!fileInput) { alert("Error: Still can't find button. HTML upload failed."); return; }
+                // NO MORE ID LOOKUP - WE USE THE GLOBAL VARIABLE
                 if(!user || !pass) return alert("Please enter username and password.");
                 
                 let avatarData = null;
-                if (fileInput.files.length > 0) {
-                    avatarData = await resizeImage(fileInput.files[0], 150, 150);
+                if (selectedFileGlobal) {
+                    avatarData = await resizeImage(selectedFileGlobal, 150, 150);
                 }
 
                 const res = await fetch('/register', {
