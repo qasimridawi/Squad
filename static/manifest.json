@@ -1,0 +1,9 @@
+{
+    "short_name": "Squad",
+    "name": "Squad Social",
+    "icons": [],
+    "start_url": "/",
+    "background_color": "#050505",
+    "display": "standalone",
+    "theme_color": "#050505"
+}
