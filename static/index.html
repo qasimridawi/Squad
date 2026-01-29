@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V6</title>
+    <title>Squad V6.1</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -19,12 +19,10 @@
         #user-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; background: #222; padding: 5px 12px; border-radius: 20px; border: 1px solid #333; }
         .tiny-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #444; }
 
-        /* TABS (FEED vs MAP) */
         .tab-row { display: flex; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 60px; z-index: 900; }
         .tab { flex: 1; text-align: center; padding: 15px; color: #666; font-weight: bold; cursor: pointer; }
         .tab.active { color: white; border-bottom: 2px solid var(--accent); }
 
-        /* MAP VIEW */
         #map-view { height: calc(100vh - 120px); display: none; }
         #feed-view { display: block; }
 
@@ -55,9 +53,8 @@
         .msg-row { display: flex; gap: 8px; align-items: flex-end; }
         .msg-row.mine { flex-direction: row-reverse; }
         .msg-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
-        .msg-bubble { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; max-width: 75%; line-height: 1.4; }
-        /* Audio Player Styling */
-        audio { height: 30px; max-width: 200px; }
+        .msg-bubble { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; max-width: 75%; line-height: 1.4; word-wrap: break-word; }
+        audio { height: 30px; max-width: 180px; }
 
         .chat-input-row { display: flex; gap: 5px; align-items: center; }
         .chat-input { flex: 1; background: black; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 10px; }
@@ -67,6 +64,8 @@
 
         .inbox-btn { position: fixed; bottom: 100px; right: 25px; width: 50px; height: 50px; background: #222; border-radius: 50%; border: 1px solid #444; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .fab { position: fixed; bottom: 30px; right: 25px; width: 60px; height: 60px; background: linear-gradient(135deg, #FF0080, #7928CA); border-radius: 50%; border: none; color: white; font-size: 30px; box-shadow: 0 10px 30px rgba(121, 40, 202, 0.5); cursor: pointer; z-index: 100; }
+        
+        .dm-msg { background: #1a1a1a; padding: 10px; border-radius: 10px; margin-bottom: 5px; font-size: 13px; border-left: 3px solid var(--accent); }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .modal-box { width: 85%; max-width: 350px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; max-height: 80vh; overflow-y: auto; }
@@ -80,8 +79,8 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V6</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">App Edition</p>
+            <h1 style="text-align: center; margin: 0;">Squad V6.1</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Complete Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
@@ -90,6 +89,19 @@
             <input type="password" id="login-pass" class="modal-input" placeholder="Password">
             <button class="btn btn-join" onclick="login()">Login</button>
             <button class="btn btn-chat" onclick="register()">Sign Up</button>
+        </div>
+    </div>
+
+    <div id="inbox-modal" class="modal" style="display: none;">
+        <div class="modal-box">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 style="margin:0">Inbox</h2>
+                <button onclick="document.getElementById('inbox-modal').style.display='none'" style="background:none; border:none; color:#666; font-size:20px;">✕</button>
+            </div>
+            <div id="inbox-list"></div>
+            <input type="text" id="dm-to" class="modal-input" placeholder="To: Username">
+            <input type="text" id="dm-text" class="modal-input" placeholder="Message...">
+            <button class="btn btn-join" onclick="sendDM()">Send</button>
         </div>
     </div>
 
@@ -127,7 +139,7 @@
     <div id="feed-view"></div>
     <div id="map-view"></div>
 
-    <button class="inbox-btn" onclick="alert('Inbox is in V5!')">📩</button>
+    <button class="inbox-btn" onclick="openInbox()">📩</button>
     <button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
 
     <script>
@@ -142,7 +154,7 @@
         let markers = [];
         let deferredPrompt;
 
-        // PWA INSTALL LOGIC
+        // PWA LOGIC
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault(); deferredPrompt = e;
@@ -175,7 +187,7 @@
         }
 
         function initMap() {
-            map = L.map('map-view').setView([55.7558, 37.6173], 10); // Default Moscow
+            map = L.map('map-view').setView([55.7558, 37.6173], 10);
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
             loadMapMarkers();
         }
@@ -184,24 +196,17 @@
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
             const data = await res.json();
-            
-            // Clear old markers
             markers.forEach(m => map.removeLayer(m));
             markers = [];
-
             data.feed.forEach(h => {
-                // Mock Geocoding (Randomize slightly around Moscow for demo)
-                // In real app we would use Nominatim API to get lat/long from h.location
                 const lat = 55.7558 + (Math.random() - 0.5) * 0.1;
                 const lng = 37.6173 + (Math.random() - 0.5) * 0.1;
-                
-                const m = L.marker([lat, lng]).addTo(map)
-                    .bindPopup(`<b>${h.title}</b><br>${h.location}`);
+                const m = L.marker([lat, lng]).addTo(map).bindPopup(`<b>${h.title}</b><br>${h.location}`);
                 markers.push(m);
             });
         }
 
-        // --- CORE FUNCTIONS (Same as V5 but with Audio) ---
+        // --- CORE LOGIC ---
         function resizeImage(file, w, h) {
             return new Promise((resolve) => {
                 if(!file) resolve(null);
@@ -246,6 +251,27 @@
         }
 
         async function like(id) { await fetch(`/like_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} }); loadFeed(); }
+
+        // --- INBOX FUNCTIONS RESTORED ---
+        async function openInbox() {
+            document.getElementById('inbox-modal').style.display = 'flex';
+            const res = await fetch('/get_dms/', { headers: {'Authorization': `Bearer ${token}`} });
+            const msgs = await res.json();
+            const list = document.getElementById('inbox-list');
+            list.innerHTML = msgs.length ? '' : '<div style="color:#666; text-align:center;">No messages</div>';
+            msgs.reverse().forEach(m => {
+                const isMe = m.sender === currentUser;
+                list.innerHTML += `<div class="dm-msg"><b>${isMe ? 'Me' : m.sender}</b> to <b>${m.receiver}</b> <span style="float:right;color:#666;font-size:10px">${m.time}</span><br>${m.text}</div>`;
+            });
+        }
+        async function sendDM() {
+            const to = document.getElementById('dm-to').value;
+            const txt = document.getElementById('dm-text').value;
+            if(!to || !txt) return;
+            await fetch('/send_dm/', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify({receiver: to, text: txt}) });
+            document.getElementById('dm-text').value = '';
+            openInbox(); 
+        }
 
         async function loadFeed() {
             if(!token) return;
@@ -293,7 +319,6 @@
         function renderMsg(m) {
             const isMe = m.user === currentUser;
             const av = m.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
-            // Check if audio
             const isAudio = m.text.startsWith('data:audio');
             const content = isAudio ? `<audio controls src="${m.text}"></audio>` : m.text;
             return `<div class="msg-row ${isMe?'mine':''}">
@@ -321,35 +346,26 @@
             }
         }
 
-        // --- AUDIO RECORDING ---
-        let mediaRecorder;
-        let audioChunks = [];
-
+        // --- AUDIO ---
+        let mediaRecorder; let audioChunks = [];
         async function startRecord(id) {
-            const btn = document.getElementById(`mic-${id}`);
-            btn.classList.add('recording');
+            const btn = document.getElementById(`mic-${id}`); btn.classList.add('recording');
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.start();
-                audioChunks = [];
+                mediaRecorder.start(); audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             } catch(e) { alert("Mic error: " + e); btn.classList.remove('recording'); }
         }
-
         function stopRecord(id) {
-            const btn = document.getElementById(`mic-${id}`);
-            btn.classList.remove('recording');
+            const btn = document.getElementById(`mic-${id}`); btn.classList.remove('recording');
             if(mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 mediaRecorder.onstop = () => {
                     const blob = new Blob(audioChunks, { type: 'audio/webm' });
                     const reader = new FileReader();
                     reader.readAsDataURL(blob);
-                    reader.onloadend = () => {
-                        const base64Audio = reader.result;
-                        sockets[id].send(base64Audio); // Send as text
-                    }
+                    reader.onloadend = () => { sockets[id].send(reader.result); }
                 };
             }
         }
