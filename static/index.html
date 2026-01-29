@@ -3,80 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V5.2</title>
+    <title>Squad V6</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
     <style>
         :root { --bg: #050505; --card: #111; --border: #333; --accent: #7928CA; --text: #fff; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; }
         
-        header { padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 10; display: flex; justify-content: space-between; align-items: center; }
+        header { padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
         h1 { margin: 0; font-size: 24px; background: linear-gradient(135deg, #FF0080, #7928CA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         #user-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; background: #222; padding: 5px 12px; border-radius: 20px; border: 1px solid #333; }
         .tiny-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #444; }
 
-        /* CARD DESIGN FIX */
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin: 20px; position: relative; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* Row 1: Title + Actions */
+        /* TABS (FEED vs MAP) */
+        .tab-row { display: flex; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 60px; z-index: 900; }
+        .tab { flex: 1; text-align: center; padding: 15px; color: #666; font-weight: bold; cursor: pointer; }
+        .tab.active { color: white; border-bottom: 2px solid var(--accent); }
+
+        /* MAP VIEW */
+        #map-view { height: calc(100vh - 120px); display: none; }
+        #feed-view { display: block; }
+
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 15px; margin: 20px; display: flex; flex-direction: column; gap: 10px; }
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .title { font-size: 18px; font-weight: bold; max-width: 70%; line-height: 1.2; }
         .actions { display: flex; gap: 15px; align-items: center; }
-        
-        .like-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #555; display: flex; flex-direction: column; align-items: center; padding: 0; }
+        .like-btn { background: none; border: none; font-size: 18px; cursor: pointer; color: #555; padding: 0; display: flex; flex-direction: column; align-items: center; }
         .like-btn.liked { color: #FF0080; transform: scale(1.1); }
         .like-count { font-size: 10px; font-weight: bold; }
-        
         .delete-btn { background: none; border: none; font-size: 18px; cursor: pointer; opacity: 0.5; padding: 0; }
 
-        /* Row 2: Image */
         .event-img { width: 100%; height: 200px; object-fit: cover; border-radius: 12px; border: 1px solid var(--border); display: none; }
         .event-img.show { display: block; }
-
-        /* Row 3: Info */
-        .location-row { color: #aaa; font-size: 13px; display: flex; align-items: center; gap: 5px; }
-
-        /* Row 4: Attendees */
         .attendees { display: flex; gap: -8px; overflow-x: auto; padding-bottom: 5px; align-items: center; height: 40px; }
         .attendee-wrap { position: relative; margin-right: -8px; }
         .attendee-face { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--card); background: #333; object-fit: cover; }
         .online-dot { position: absolute; bottom: 2px; right: 2px; width: 8px; height: 8px; background: #00FF00; border-radius: 50%; border: 2px solid var(--card); display: none; }
         .online-dot.active { display: block; }
 
-        /* Row 5: Buttons */
         .btn-row { display: flex; gap: 10px; margin-top: 5px; }
         .btn { flex: 1; padding: 12px; border-radius: 12px; border: none; font-weight: bold; cursor: pointer; font-size: 14px; text-align: center; }
         .btn-join { background: white; color: black; }
         .btn-chat { background: #333; color: white; }
 
-        /* CHAT & INBOX */
         .chat-area { display: none; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
         .messages { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
         .msg-row { display: flex; gap: 8px; align-items: flex-end; }
         .msg-row.mine { flex-direction: row-reverse; }
         .msg-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
         .msg-bubble { font-size: 13px; padding: 8px 12px; border-radius: 12px; background: #222; max-width: 75%; line-height: 1.4; }
-        .chat-input-row { display: flex; gap: 5px; }
+        /* Audio Player Styling */
+        audio { height: 30px; max-width: 200px; }
+
+        .chat-input-row { display: flex; gap: 5px; align-items: center; }
         .chat-input { flex: 1; background: black; border: 1px solid var(--border); color: white; padding: 10px; border-radius: 10px; }
+        .mic-btn { background: #222; border: 1px solid var(--border); color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 18px; }
+        .mic-btn.recording { background: #FF0080; animation: pulse 1s infinite; border: none; }
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
         .inbox-btn { position: fixed; bottom: 100px; right: 25px; width: 50px; height: 50px; background: #222; border-radius: 50%; border: 1px solid #444; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
         .fab { position: fixed; bottom: 30px; right: 25px; width: 60px; height: 60px; background: linear-gradient(135deg, #FF0080, #7928CA); border-radius: 50%; border: none; color: white; font-size: 30px; box-shadow: 0 10px 30px rgba(121, 40, 202, 0.5); cursor: pointer; z-index: 100; }
 
-        /* MODALS */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; }
         .modal-box { width: 85%; max-width: 350px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; max-height: 80vh; overflow-y: auto; }
         .modal-input { padding: 15px; background: #222; border: none; color: white; border-radius: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
         .file-label { background: #222; padding: 15px; border-radius: 10px; text-align: center; color: #888; cursor: pointer; border: 1px dashed #555; display: block; }
-        .dm-msg { background: #1a1a1a; padding: 10px; border-radius: 10px; margin-bottom: 5px; font-size: 13px; border-left: 3px solid var(--accent); }
+        
+        #install-btn { display: none; background: #222; color: #fff; border: 1px solid #444; padding: 5px 10px; border-radius: 15px; font-size: 11px; margin-right: 10px; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V5.2</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">God Mode Edition</p>
+            <h1 style="text-align: center; margin: 0;">Squad V6</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">App Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
@@ -88,24 +93,11 @@
         </div>
     </div>
 
-    <div id="inbox-modal" class="modal" style="display: none;">
-        <div class="modal-box">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 style="margin:0">Inbox</h2>
-                <button onclick="document.getElementById('inbox-modal').style.display='none'" style="background:none; border:none; color:#666; font-size:20px;">✕</button>
-            </div>
-            <div id="inbox-list"></div>
-            <input type="text" id="dm-to" class="modal-input" placeholder="To: Username">
-            <input type="text" id="dm-text" class="modal-input" placeholder="Message...">
-            <button class="btn btn-join" onclick="sendDM()">Send</button>
-        </div>
-    </div>
-
     <div id="create-modal" class="modal" style="display: none;">
         <div class="modal-box">
             <h2 style="text-align: center; margin: 0;">New Squad</h2>
             <input type="text" id="new-title" class="modal-input" placeholder="Title">
-            <input type="text" id="new-loc" class="modal-input" placeholder="Location">
+            <input type="text" id="new-loc" class="modal-input" placeholder="Location (City)">
             <label class="file-label">📷 Cover Photo <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
             <div class="btn-row">
                 <button class="btn btn-chat" onclick="document.getElementById('create-modal').style.display='none'">Cancel</button>
@@ -115,15 +107,27 @@
     </div>
 
     <header>
-        <h1>Squad</h1>
-        <div id="user-badge" onclick="logout()">
-            <img id="my-avatar" class="tiny-avatar">
-            <span id="my-name">Guest</span>
+        <div style="display:flex; align-items:center;">
+            <h1>Squad</h1>
+        </div>
+        <div style="display:flex; align-items:center;">
+            <button id="install-btn" onclick="installApp()">⬇ Install</button>
+            <div id="user-badge" onclick="logout()">
+                <img id="my-avatar" class="tiny-avatar">
+                <span id="my-name">Guest</span>
+            </div>
         </div>
     </header>
 
-    <div id="feed"></div>
-    <button class="inbox-btn" onclick="openInbox()">📩</button>
+    <div class="tab-row">
+        <div class="tab active" onclick="switchTab('feed')" id="tab-feed">Feed</div>
+        <div class="tab" onclick="switchTab('map')" id="tab-map">Map 🗺️</div>
+    </div>
+
+    <div id="feed-view"></div>
+    <div id="map-view"></div>
+
+    <button class="inbox-btn" onclick="alert('Inbox is in V5!')">📩</button>
     <button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
 
     <script>
@@ -134,6 +138,24 @@
         let sockets = {}; 
         let onlineUsers = [];
         let selectedFileGlobal = null;
+        let map = null;
+        let markers = [];
+        let deferredPrompt;
+
+        // PWA INSTALL LOGIC
+        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault(); deferredPrompt = e;
+            document.getElementById('install-btn').style.display = 'block';
+        });
+        async function installApp() {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                if (outcome === 'accepted') document.getElementById('install-btn').style.display = 'none';
+                deferredPrompt = null;
+            }
+        }
 
         if (!token) document.getElementById('login-modal').style.display = 'flex';
         else { updateBadge(); loadFeed(); }
@@ -144,6 +166,42 @@
             if (isAdmin) document.getElementById('my-name').innerText += " (ADMIN)";
         }
 
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(`tab-${tab}`).classList.add('active');
+            document.getElementById('feed-view').style.display = tab === 'feed' ? 'block' : 'none';
+            document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
+            if (tab === 'map' && !map) initMap();
+        }
+
+        function initMap() {
+            map = L.map('map-view').setView([55.7558, 37.6173], 10); // Default Moscow
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
+            loadMapMarkers();
+        }
+
+        async function loadMapMarkers() {
+            if(!token) return;
+            const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
+            const data = await res.json();
+            
+            // Clear old markers
+            markers.forEach(m => map.removeLayer(m));
+            markers = [];
+
+            data.feed.forEach(h => {
+                // Mock Geocoding (Randomize slightly around Moscow for demo)
+                // In real app we would use Nominatim API to get lat/long from h.location
+                const lat = 55.7558 + (Math.random() - 0.5) * 0.1;
+                const lng = 37.6173 + (Math.random() - 0.5) * 0.1;
+                
+                const m = L.marker([lat, lng]).addTo(map)
+                    .bindPopup(`<b>${h.title}</b><br>${h.location}`);
+                markers.push(m);
+            });
+        }
+
+        // --- CORE FUNCTIONS (Same as V5 but with Audio) ---
         function resizeImage(file, w, h) {
             return new Promise((resolve) => {
                 if(!file) resolve(null);
@@ -187,45 +245,14 @@
             } else alert("Fail");
         }
 
-        async function like(id) {
-            await fetch(`/like_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} });
-            loadFeed();
-        }
-
-        async function openInbox() {
-            document.getElementById('inbox-modal').style.display = 'flex';
-            const res = await fetch('/get_dms/', { headers: {'Authorization': `Bearer ${token}`} });
-            const msgs = await res.json();
-            const list = document.getElementById('inbox-list');
-            list.innerHTML = msgs.length ? '' : '<div style="color:#666; text-align:center;">No messages</div>';
-            msgs.reverse().forEach(m => {
-                const isMe = m.sender === currentUser;
-                list.innerHTML += `<div class="dm-msg">
-                    <b>${isMe ? 'Me' : m.sender}</b> to <b>${m.receiver}</b>
-                    <span style="float:right; color:#666; font-size:10px;">${m.time}</span><br>${m.text}
-                </div>`;
-            });
-        }
-
-        async function sendDM() {
-            const to = document.getElementById('dm-to').value;
-            const txt = document.getElementById('dm-text').value;
-            if(!to || !txt) return;
-            await fetch('/send_dm/', { 
-                method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({receiver: to, text: txt})
-            });
-            document.getElementById('dm-text').value = '';
-            openInbox(); 
-        }
+        async function like(id) { await fetch(`/like_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} }); loadFeed(); }
 
         async function loadFeed() {
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
             if(res.status === 401) logout();
             const data = await res.json();
-            const div = document.getElementById('feed');
-            
+            const div = document.getElementById('feed-view');
             const openChats = {};
             document.querySelectorAll('.chat-area').forEach(e => { if(e.style.display==='block') openChats[e.id]=true; });
 
@@ -234,44 +261,25 @@
                 const isHost = h.host === currentUser;
                 const canDelete = isHost || isAdmin;
                 const hasImg = h.image_data ? 'show' : '';
-                
                 let faces = '';
                 h.attendees.forEach(a => {
                     const isOnline = onlineUsers.includes(a.name) ? 'active' : '';
-                    faces += `<div class="attendee-wrap">
-                        <img src="${a.avatar||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="attendee-face">
-                        <div class="online-dot ${isOnline}"></div>
-                    </div>`;
+                    faces += `<div class="attendee-wrap"><img src="${a.avatar||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="attendee-face"><div class="online-dot ${isOnline}"></div></div>`;
                 });
-
                 let msgs = ''; h.messages.forEach(m => msgs += renderMsg(m));
 
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
-                    <div class="card-header">
-                        <div class="title">${h.title}</div>
-                        <div class="actions">
-                            <button class="like-btn ${h.liked_by_me ? 'liked' : ''}" onclick="like(${h.id})">
-                                ❤️<span class="like-count">${h.likes}</span>
-                            </button>
-                            ${canDelete ? `<button class="delete-btn" onclick="del(${h.id})">🗑️</button>` : ''}
-                        </div>
-                    </div>
-                    
+                    <div class="card-header"><div class="title">${h.title}</div><div class="actions"><button class="like-btn ${h.liked_by_me ? 'liked' : ''}" onclick="like(${h.id})">❤️<span class="like-count">${h.likes}</span></button>${canDelete ? `<button class="delete-btn" onclick="del(${h.id})">🗑️</button>` : ''}</div></div>
                     <img src="${h.image_data||''}" class="event-img ${hasImg}">
                     <div class="location-row">📍 ${h.location}</div>
-                    
                     <div class="attendees">${faces}</div>
-                    
-                    <div class="btn-row">
-                        <button class="btn btn-join" onclick="join(${h.id})">Join</button>
-                        <button class="btn btn-chat" onclick="toggleChat(${h.id})">💬 Chat</button>
-                    </div>
-
+                    <div class="btn-row"><button class="btn btn-join" onclick="join(${h.id})">Join</button><button class="btn btn-chat" onclick="toggleChat(${h.id})">💬 Chat</button></div>
                     <div id="chat-${h.id}" class="chat-area">
                         <div class="messages" id="box-${h.id}">${msgs}</div>
                         <div class="chat-input-row">
+                            <button class="mic-btn" id="mic-${h.id}" onmousedown="startRecord(${h.id})" onmouseup="stopRecord(${h.id})" ontouchstart="startRecord(${h.id})" ontouchend="stopRecord(${h.id})">🎤</button>
                             <input class="chat-input" id="in-${h.id}" placeholder="..." onkeypress="if(event.key==='Enter') send(${h.id})">
                             <button class="btn btn-chat" style="flex:0" onclick="send(${h.id})">➤</button>
                         </div>
@@ -279,14 +287,18 @@
                 div.appendChild(card);
                 if(openChats[`chat-${h.id}`]) toggleChat(h.id);
             });
+            if(map) loadMapMarkers();
         }
 
         function renderMsg(m) {
             const isMe = m.user === currentUser;
             const av = m.avatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            // Check if audio
+            const isAudio = m.text.startsWith('data:audio');
+            const content = isAudio ? `<audio controls src="${m.text}"></audio>` : m.text;
             return `<div class="msg-row ${isMe?'mine':''}">
                 ${!isMe ? `<img src="${av}" class="msg-avatar">` : ''}
-                <div class="msg-bubble">${!isMe ? `<b>${m.user}</b><br>`:''}${m.text}</div>
+                <div class="msg-bubble">${!isMe ? `<b>${m.user}</b><br>`:''}${content}</div>
             </div>`;
         }
 
@@ -306,6 +318,39 @@
                     };
                     sockets[id] = ws;
                 }
+            }
+        }
+
+        // --- AUDIO RECORDING ---
+        let mediaRecorder;
+        let audioChunks = [];
+
+        async function startRecord(id) {
+            const btn = document.getElementById(`mic-${id}`);
+            btn.classList.add('recording');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+                audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+            } catch(e) { alert("Mic error: " + e); btn.classList.remove('recording'); }
+        }
+
+        function stopRecord(id) {
+            const btn = document.getElementById(`mic-${id}`);
+            btn.classList.remove('recording');
+            if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const reader = new FileReader();
+                    reader.readAsDataURL(blob);
+                    reader.onloadend = () => {
+                        const base64Audio = reader.result;
+                        sockets[id].send(base64Audio); // Send as text
+                    }
+                };
             }
         }
 
