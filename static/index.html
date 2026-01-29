@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V4.1</title>
+    <title>Squad V4.2</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -35,7 +35,7 @@
         .btn-chat { background: #333; color: white; }
         .btn-delete { position: absolute; top: 15px; right: 15px; background: rgba(255,0,0,0.2); color: #ff5555; border: none; width: 30px; height: 30px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center;}
 
-        /* REAL-TIME CHAT */
+        /* CHAT */
         .chat-area { display: none; margin-top: 15px; border-top: 1px solid var(--border); padding-top: 15px; }
         .messages { max-height: 250px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 10px; }
         
@@ -55,9 +55,9 @@
         .modal-box { width: 85%; max-width: 350px; background: #111; padding: 25px; border-radius: 20px; border: 1px solid var(--border); display: flex; flex-direction: column; gap: 15px; }
         .modal-input { padding: 15px; background: #222; border: none; color: white; border-radius: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
         .file-label { background: #222; padding: 15px; border-radius: 10px; text-align: center; color: #888; cursor: pointer; border: 1px dashed #555; display: block; }
+        .preview-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: none; border: 2px solid var(--accent); }
         
         .fab { position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px; background: linear-gradient(135deg, #FF0080, #7928CA); border-radius: 50%; border: none; color: white; font-size: 30px; box-shadow: 0 10px 30px rgba(121, 40, 202, 0.5); cursor: pointer; }
-        .preview-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; margin: 0 auto; display: none; border: 2px solid var(--accent); }
     </style>
 </head>
 <body>
@@ -68,7 +68,7 @@
             <p style="text-align: center; color: #666; font-size: 14px;">God Mode Edition</p>
             
             <img id="reg-avatar-preview" class="preview-img">
-            <label class="file-label" id="avatar-label">📷 Add Profile Pic (Required for Sign Up)
+            <label class="file-label" id="avatar-label">📷 Add Profile Pic (Required)
                 <input type="file" id="reg-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
             </label>
 
@@ -113,6 +113,7 @@
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let sockets = {}; 
 
+        // Initial Load
         if (!token) document.getElementById('login-modal').style.display = 'flex';
         else {
             updateBadge();
@@ -125,124 +126,146 @@
             if (isAdmin) document.getElementById('my-name').innerText += " (ADMIN)";
         }
 
-        async function previewAvatar(input) {
-            const file = input.files[0];
-            if (file) {
-                // Resize for preview
-                const resized = await resizeImage(file, 200, 200); 
-                document.getElementById('reg-avatar-preview').src = resized;
-                document.getElementById('reg-avatar-preview').style.display = 'block';
-                document.getElementById('avatar-label').innerText = "Change Photo";
-            }
+        // --- BULLETPROOF IMAGE COMPRESSION ---
+        // Uses URL.createObjectURL to prevent memory crashes on big files
+        function resizeImage(file, maxWidth, maxHeight) {
+            return new Promise((resolve, reject) => {
+                if (!file) resolve(null);
+                const img = new Image();
+                img.src = URL.createObjectURL(file);
+                img.onload = () => {
+                    const elem = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    if (width > height) {
+                        if (width > maxWidth) { height *= maxWidth / width; width = maxWidth; }
+                    } else {
+                        if (height > maxHeight) { width *= maxHeight / height; height = maxHeight; }
+                    }
+                    elem.width = width;
+                    elem.height = height;
+                    const ctx = elem.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    const dataUrl = elem.toDataURL('image/jpeg', 0.7);
+                    URL.revokeObjectURL(img.src); // Free memory
+                    resolve(dataUrl);
+                };
+                img.onerror = (err) => reject("Image load error: " + err);
+            });
         }
 
-        // --- COMPRESSION ENGINE ---
-        function resizeImage(file, maxWidth, maxHeight) {
-            return new Promise((resolve) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = (event) => {
-                    const img = new Image();
-                    img.src = event.target.result;
-                    img.onload = () => {
-                        const elem = document.createElement('canvas');
-                        let width = img.width;
-                        let height = img.height;
-
-                        if (width > height) {
-                            if (width > maxWidth) {
-                                height *= maxWidth / width;
-                                width = maxWidth;
-                            }
-                        } else {
-                            if (height > maxHeight) {
-                                width *= maxHeight / height;
-                                height = maxHeight;
-                            }
-                        }
-                        elem.width = width;
-                        elem.height = height;
-                        const ctx = elem.getContext('2d');
-                        ctx.drawImage(img, 0, 0, width, height);
-                        // Compress to JPEG 70% quality
-                        resolve(elem.toDataURL('image/jpeg', 0.7));
-                    };
-                };
-            });
+        async function previewAvatar(input) {
+            try {
+                const file = input.files[0];
+                if (file) {
+                    const resized = await resizeImage(file, 200, 200); 
+                    document.getElementById('reg-avatar-preview').src = resized;
+                    document.getElementById('reg-avatar-preview').style.display = 'block';
+                    document.getElementById('avatar-label').innerText = "Change Photo";
+                }
+            } catch (e) {
+                alert("Error previewing image: " + e);
+            }
         }
 
         async function register() {
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-pass').value;
-            const fileInput = document.getElementById('reg-avatar');
-            
-            if(!user || !pass) return alert("Fill user/pass!");
-            
-            let avatarData = null;
-            if (fileInput.files.length > 0) {
-                // Shrink Avatar to 150x150 (Tiny!)
-                avatarData = await resizeImage(fileInput.files[0], 150, 150);
-            }
+            try {
+                const user = document.getElementById('login-user').value;
+                const pass = document.getElementById('login-pass').value;
+                const fileInput = document.getElementById('reg-avatar');
+                
+                if(!user || !pass) return alert("Please enter username and password.");
+                
+                let avatarData = null;
+                if (fileInput.files.length > 0) {
+                    // Force resize to tiny icon size
+                    avatarData = await resizeImage(fileInput.files[0], 150, 150);
+                }
 
-            const res = await fetch('/register', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: user, password: pass, avatar_data: avatarData})
-            });
-            if(res.ok) { alert("Success! Now Login."); }
-            else { alert("Username taken or error."); }
+                const res = await fetch('/register', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({username: user, password: pass, avatar_data: avatarData})
+                });
+                
+                if(res.ok) { 
+                    alert("Account Created! You can now Login."); 
+                } else { 
+                    const err = await res.json();
+                    alert("Registration Failed: " + (err.detail || "Username likely taken")); 
+                }
+            } catch (e) {
+                alert("Network/App Error: " + e);
+            }
         }
 
         async function login() {
-            const user = document.getElementById('login-user').value;
-            const pass = document.getElementById('login-pass').value;
-            const formData = new URLSearchParams();
-            formData.append('username', user);
-            formData.append('password', pass);
+            try {
+                const user = document.getElementById('login-user').value;
+                const pass = document.getElementById('login-pass').value;
+                const formData = new URLSearchParams();
+                formData.append('username', user);
+                formData.append('password', pass);
 
-            const res = await fetch('/token', { method: 'POST', body: formData });
-            const data = await res.json();
-            
-            if(res.ok) {
-                token = data.access_token;
-                currentUser = data.username;
-                currentAvatar = data.avatar;
-                isAdmin = data.is_admin;
+                const res = await fetch('/token', { method: 'POST', body: formData });
+                const data = await res.json();
                 
-                // Safe Storage (Avatar is now tiny, so it won't crash)
-                localStorage.setItem('squad_token', token);
-                localStorage.setItem('squad_user', currentUser);
-                localStorage.setItem('squad_avatar', currentAvatar || '');
-                localStorage.setItem('squad_admin', isAdmin);
+                if(res.ok) {
+                    token = data.access_token;
+                    currentUser = data.username;
+                    currentAvatar = data.avatar;
+                    isAdmin = data.is_admin;
+                    
+                    // Safety check for localStorage
+                    try {
+                        localStorage.setItem('squad_token', token);
+                        localStorage.setItem('squad_user', currentUser);
+                        localStorage.setItem('squad_avatar', currentAvatar || '');
+                        localStorage.setItem('squad_admin', isAdmin);
+                    } catch (e) {
+                        alert("Warning: Phone storage full. Avatar not saved locally.");
+                    }
 
-                document.getElementById('login-modal').style.display = 'none';
-                updateBadge();
-                loadFeed();
-            } else { alert("Login failed!"); }
+                    document.getElementById('login-modal').style.display = 'none';
+                    updateBadge();
+                    loadFeed();
+                } else { 
+                    alert("Login Failed: Incorrect username or password."); 
+                }
+            } catch (e) {
+                alert("Login Error: " + e);
+            }
         }
 
         function logout() { localStorage.clear(); location.reload(); }
-
         function openCreate() { document.getElementById('create-modal').style.display = 'flex'; }
         function closeCreate() { document.getElementById('create-modal').style.display = 'none'; }
 
         async function submitCreate() {
-            const title = document.getElementById('new-title').value;
-            const loc = document.getElementById('new-loc').value;
-            const fileInput = document.getElementById('new-img');
-            let imgData = null;
-            if (fileInput.files.length > 0) {
-                // Resize Event Cover to 800px width (Good quality but small size)
-                imgData = await resizeImage(fileInput.files[0], 800, 800);
-            }
+            try {
+                const title = document.getElementById('new-title').value;
+                const loc = document.getElementById('new-loc').value;
+                const fileInput = document.getElementById('new-img');
+                let imgData = null;
+                if (fileInput.files.length > 0) {
+                    imgData = await resizeImage(fileInput.files[0], 800, 800);
+                }
 
-            await fetch('/create_hangout/', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({ title, location: loc, image_data: imgData })
-            });
-            closeCreate();
-            loadFeed();
+                const res = await fetch('/create_hangout/', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                    body: JSON.stringify({ title, location: loc, image_data: imgData })
+                });
+
+                if (!res.ok) throw new Error("Server rejected event.");
+
+                closeCreate();
+                loadFeed();
+            } catch (e) {
+                alert("Failed to create event: " + e);
+            }
         }
 
         async function loadFeed() {
