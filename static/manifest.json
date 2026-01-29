@@ -1,9 +1,21 @@
 {
     "short_name": "Squad",
     "name": "Squad Social",
-    "icons": [],
+    "icons": [
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+            "type": "image/png",
+            "sizes": "192x192"
+        },
+        {
+            "src": "https://cdn-icons-png.flaticon.com/512/847/847969.png",
+            "type": "image/png",
+            "sizes": "512x512"
+        }
+    ],
     "start_url": "/",
     "background_color": "#050505",
     "display": "standalone",
-    "theme_color": "#050505"
+    "theme_color": "#050505",
+    "orientation": "portrait"
 }
