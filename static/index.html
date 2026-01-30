@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V7.1</title>
+    <title>Squad V9</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -79,14 +79,19 @@
         #install-btn { display: none; background: #222; color: #fff; border: 1px solid #444; padding: 5px 10px; border-radius: 15px; font-size: 11px; margin-right: 10px; cursor: pointer; }
         
         #rec-status { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #FF0080; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
+        
+        /* CONNECTION DOT */
+        #conn-status { width: 10px; height: 10px; border-radius: 50%; background: #555; margin-left: 10px; }
+        #conn-status.green { background: #00FF00; box-shadow: 0 0 10px #00FF00; }
+        #conn-status.red { background: #FF0000; }
     </style>
 </head>
 <body>
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V7.1</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Stable Edition</p>
+            <h1 style="text-align: center; margin: 0;">Squad V9</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Cache Clear Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
@@ -100,8 +105,10 @@
 
     <div id="chat-modal">
         <div class="chat-header">
-            <h2 id="chat-title" style="margin:0; font-size:18px;">Chat</h2>
-            <button onclick="closeChat()" style="background:none; border:none; color:#666; font-size:24px;">✕</button>
+            <div style="display:flex; align-items:center;">
+                <button onclick="closeChat()" style="background:none; border:none; color:#666; font-size:24px; margin-right:10px;">←</button>
+                <h2 id="chat-title" style="margin:0; font-size:18px;">Chat</h2>
+                <div id="conn-status"></div> </div>
         </div>
         <div id="chat-body" class="chat-body"></div>
         <div id="rec-status">Recording... Release to Send</div>
@@ -161,6 +168,13 @@
     <button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
 
     <script>
+        // KILL SERVICE WORKER TO FIX GHOSTING
+        if(window.navigator && navigator.serviceWorker) {
+            navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                for(let registration of registrations) { registration.unregister(); }
+            });
+        }
+
         let token = localStorage.getItem('squad_token');
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
@@ -173,7 +187,6 @@
         let deferredPrompt;
         let currentSocket = null; 
 
-        if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-btn').style.display = 'block'; });
         async function installApp() { if(deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; } }
 
@@ -216,6 +229,7 @@
             document.getElementById('chat-modal').style.display = 'block';
             document.getElementById('chat-title').innerText = title;
             document.getElementById('chat-body').innerHTML = '<div style="color:#666;text-align:center;margin-top:20px;">Connecting...</div>';
+            document.getElementById('conn-status').className = ''; // Reset dot
             
             const res = await fetch(`/chat_history/${id}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
@@ -226,15 +240,18 @@
 
             if(currentSocket) currentSocket.close();
             currentSocket = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${id}?token=${token}`);
+            
+            currentSocket.onopen = () => { document.getElementById('conn-status').className = 'green'; }; // Green Dot
+            currentSocket.onclose = (e) => { 
+                document.getElementById('conn-status').className = 'red'; // Red Dot
+                if(e.code === 1008) { alert("Session Expired"); logout(); }
+            };
             currentSocket.onmessage = e => {
                 const d = JSON.parse(e.data);
                 if(d.type === 'msg') {
                     body.innerHTML += renderMsg(d);
                     body.scrollTop = body.scrollHeight;
                 }
-            };
-            currentSocket.onclose = (e) => {
-                if(e.code === 1008) { alert("Session Expired"); logout(); }
             };
         }
 
@@ -268,7 +285,6 @@
         let mediaRecorder; let audioChunks = [];
         const micBtn = document.getElementById('mic-btn');
 
-        // FORCE TOUCH EVENTS TO WORK ON MOBILE
         micBtn.addEventListener('mousedown', startRecord);
         micBtn.addEventListener('mouseup', stopRecord);
         micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecord(); });
