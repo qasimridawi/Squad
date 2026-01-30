@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V7</title>
+    <title>Squad V7.1</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 
     <style>
         :root { --bg: #050505; --card: #111; --border: #333; --accent: #7928CA; --text: #fff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; overscroll-behavior: none; }
         
         header { padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(5,5,5,0.95); z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
         h1 { margin: 0; font-size: 24px; background: linear-gradient(135deg, #FF0080, #7928CA); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
@@ -48,11 +48,11 @@
         .btn-join { background: white; color: black; }
         .btn-chat { background: #333; color: white; }
 
-        /* FULL SCREEN CHAT MODAL */
-        #chat-modal { display: none; background: var(--bg); z-index: 2000; } 
-        .chat-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding: 15px; }
-        .chat-body { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 140px); }
-        .chat-footer { padding: 10px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: var(--bg); }
+        /* CHAT MODAL */
+        #chat-modal { display: none; background: var(--bg); z-index: 2000; width:100%; height:100%; position:fixed; top:0; left:0; } 
+        .chat-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding: 15px; background: rgba(5,5,5,0.95); }
+        .chat-body { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; height: calc(100vh - 140px); padding-bottom: 80px; }
+        .chat-footer { padding: 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: var(--bg); position: fixed; bottom: 0; width: 100%; box-sizing: border-box; }
 
         .messages { display: flex; flex-direction: column; gap: 10px; }
         .msg-row { display: flex; gap: 8px; align-items: flex-end; }
@@ -61,10 +61,10 @@
         .msg-bubble { font-size: 14px; padding: 10px 14px; border-radius: 16px; background: #222; max-width: 75%; line-height: 1.4; word-wrap: break-word; color: white; }
         .msg-row.mine .msg-bubble { background: var(--accent); }
         
-        audio { height: 35px; max-width: 200px; }
+        audio { height: 40px; max-width: 200px; border-radius: 20px; }
 
-        .chat-input { flex: 1; background: #111; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 20px; outline: none; }
-        .mic-btn { background: #222; border: 1px solid var(--border); color: white; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 20px; }
+        .chat-input { flex: 1; background: #111; border: 1px solid var(--border); color: white; padding: 12px; border-radius: 20px; outline: none; font-size: 16px; }
+        .mic-btn { background: #222; border: 1px solid var(--border); color: white; width: 50px; height: 50px; border-radius: 50%; cursor: pointer; display: flex; justify-content: center; align-items: center; font-size: 24px; -webkit-tap-highlight-color: transparent; user-select: none; }
         .mic-btn.recording { background: #FF0080; animation: pulse 1s infinite; border: none; }
         @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.1); } 100% { transform: scale(1); } }
 
@@ -77,14 +77,16 @@
         .modal-input { padding: 15px; background: #222; border: none; color: white; border-radius: 10px; font-size: 16px; width: 100%; box-sizing: border-box; }
         .file-label { background: #222; padding: 15px; border-radius: 10px; text-align: center; color: #888; cursor: pointer; border: 1px dashed #555; display: block; }
         #install-btn { display: none; background: #222; color: #fff; border: 1px solid #444; padding: 5px 10px; border-radius: 15px; font-size: 11px; margin-right: 10px; cursor: pointer; }
+        
+        #rec-status { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #FF0080; color: white; padding: 5px 15px; border-radius: 20px; font-size: 12px; display: none; }
     </style>
 </head>
 <body>
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V7</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Messenger Edition</p>
+            <h1 style="text-align: center; margin: 0;">Squad V7.1</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Stable Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
@@ -96,14 +98,15 @@
         </div>
     </div>
 
-    <div id="chat-modal" class="modal">
+    <div id="chat-modal">
         <div class="chat-header">
             <h2 id="chat-title" style="margin:0; font-size:18px;">Chat</h2>
             <button onclick="closeChat()" style="background:none; border:none; color:#666; font-size:24px;">✕</button>
         </div>
         <div id="chat-body" class="chat-body"></div>
+        <div id="rec-status">Recording... Release to Send</div>
         <div class="chat-footer">
-            <button class="mic-btn" id="mic-btn" onmousedown="startRecord()" onmouseup="stopRecord()" ontouchstart="startRecord()" ontouchend="stopRecord()">🎤</button>
+            <button class="mic-btn" id="mic-btn">🎤</button>
             <input id="chat-input" class="chat-input" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
             <button class="btn btn-chat" style="flex:0; width:50px;" onclick="send()">➤</button>
         </div>
@@ -162,13 +165,13 @@
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
+        let sockets = {}; 
         let onlineUsers = [];
         let selectedFileGlobal = null;
         let map = null;
         let markers = [];
         let deferredPrompt;
-        let currentSocket = null; // ONLY ONE SOCKET AT A TIME
-        let currentHangoutId = null;
+        let currentSocket = null; 
 
         if ('serviceWorker' in navigator) { navigator.serviceWorker.register('/static/sw.js'); }
         window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('install-btn').style.display = 'block'; });
@@ -179,6 +182,7 @@
         function updateBadge() {
             document.getElementById('my-name').innerText = currentUser;
             document.getElementById('my-avatar').src = currentAvatar || 'https://cdn-icons-png.flaticon.com/512/847/847969.png';
+            if (isAdmin) document.getElementById('my-name').innerText += " (ADMIN)";
         }
 
         function switchTab(tab) {
@@ -208,14 +212,11 @@
             });
         }
 
-        // --- CHAT SYSTEM V7 (STABLE) ---
         async function openChat(id, title) {
-            currentHangoutId = id;
             document.getElementById('chat-modal').style.display = 'block';
             document.getElementById('chat-title').innerText = title;
             document.getElementById('chat-body').innerHTML = '<div style="color:#666;text-align:center;margin-top:20px;">Connecting...</div>';
             
-            // 1. Load History
             const res = await fetch(`/chat_history/${id}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
             const body = document.getElementById('chat-body');
@@ -223,7 +224,6 @@
             msgs.forEach(m => body.innerHTML += renderMsg(m));
             body.scrollTop = body.scrollHeight;
 
-            // 2. Connect Socket
             if(currentSocket) currentSocket.close();
             currentSocket = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${id}?token=${token}`);
             currentSocket.onmessage = e => {
@@ -242,7 +242,7 @@
             document.getElementById('chat-modal').style.display = 'none';
             if(currentSocket) currentSocket.close();
             currentSocket = null;
-            loadFeed(); // Refresh feed to show updated counts/online status
+            loadFeed(); 
         }
 
         function send() {
@@ -264,19 +264,34 @@
             </div>`;
         }
 
-        // --- AUDIO ---
+        // --- IMPROVED AUDIO LOGIC ---
         let mediaRecorder; let audioChunks = [];
+        const micBtn = document.getElementById('mic-btn');
+
+        // FORCE TOUCH EVENTS TO WORK ON MOBILE
+        micBtn.addEventListener('mousedown', startRecord);
+        micBtn.addEventListener('mouseup', stopRecord);
+        micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); startRecord(); });
+        micBtn.addEventListener('touchend', (e) => { e.preventDefault(); stopRecord(); });
+
         async function startRecord() {
-            const btn = document.getElementById('mic-btn'); btn.classList.add('recording');
+            micBtn.classList.add('recording');
+            document.getElementById('rec-status').style.display = 'block';
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 mediaRecorder = new MediaRecorder(stream);
                 mediaRecorder.start(); audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-            } catch(e) { alert("Mic error: " + e); btn.classList.remove('recording'); }
+            } catch(e) { 
+                alert("Microphone Access Denied! Check Phone Settings."); 
+                micBtn.classList.remove('recording');
+                document.getElementById('rec-status').style.display = 'none';
+            }
         }
+
         function stopRecord() {
-            const btn = document.getElementById('mic-btn'); btn.classList.remove('recording');
+            micBtn.classList.remove('recording');
+            document.getElementById('rec-status').style.display = 'none';
             if(mediaRecorder && mediaRecorder.state !== 'inactive') {
                 mediaRecorder.stop();
                 mediaRecorder.onstop = () => {
@@ -288,7 +303,6 @@
             }
         }
 
-        // --- FEED ---
         async function loadFeed() {
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
@@ -321,7 +335,7 @@
             if(map) loadMapMarkers();
         }
 
-        // --- CORE UTILS ---
+        // --- UTILS ---
         function resizeImage(file, w, h) { return new Promise((resolve) => { if(!file) resolve(null); const img = new Image(); img.src = URL.createObjectURL(file); img.onload = () => { const cvs = document.createElement('canvas'); let scale = Math.max(w/img.width, h/img.height); cvs.width = w; cvs.height = h; cvs.getContext('2d').drawImage(img, 0,0, img.width*scale, img.height*scale); resolve(cvs.toDataURL('image/jpeg', 0.7)); }; }); }
         async function previewAvatar(input) { selectedFileGlobal = input.files[0]; const resized = await resizeImage(selectedFileGlobal, 200, 200); document.getElementById('reg-avatar-preview').src = resized; document.getElementById('reg-avatar-preview').style.display = 'block'; }
         async function register() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; let av = selectedFileGlobal ? await resizeImage(selectedFileGlobal, 150, 150) : null; const res = await fetch('/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p, avatar_data:av}) }); if(res.ok) alert("Created!"); else alert("Taken"); }
