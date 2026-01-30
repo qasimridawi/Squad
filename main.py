@@ -2,7 +2,7 @@ import uvicorn
 import random
 import os
 import json
-import jwt  # Using PyJWT now
+import jwt  # PyJWT (The new, stable security tool)
 from datetime import datetime
 from typing import Optional, List, Dict
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
@@ -77,8 +77,11 @@ class DirectMessage(Base):
     text = Column(String)
     timestamp = Column(String)
 
-try: Base.metadata.create_all(bind=engine)
-except: pass
+# Database Safety Check
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    print(f"DB Init Error (Ignored): {e}")
 
 # --- APP ---
 app = FastAPI()
@@ -119,32 +122,46 @@ manager = ConnectionManager()
 
 # --- HELPERS ---
 def get_db():
-    db = SessionLocal(); try: yield db; finally: db.close()
+    db = SessionLocal()
+    try: yield db
+    finally: db.close()
+
 def get_hash(p): return pwd_context.hash(p)
 def verify_password(p, h): return pwd_context.verify(p, h)
 def create_token(d): return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); user = db.query(User).filter(User.username == payload.get("sub")).first()
-    except: raise HTTPException(status_code=401)
+    try: 
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        user = db.query(User).filter(User.username == payload.get("sub")).first()
+    except: 
+        raise HTTPException(status_code=401)
     if not user: raise HTTPException(status_code=401)
     return user
 
 # --- SCHEMAS ---
 class RegisterSchema(BaseModel):
-    username: str; password: str; avatar_data: Optional[str] = None
+    username: str
+    password: str
+    avatar_data: Optional[str] = None
+
 class HangoutSchema(BaseModel):
-    title: str; location: str; image_data: Optional[str] = None
+    title: str
+    location: str
+    image_data: Optional[str] = None
+
 class DMSchema(BaseModel):
-    receiver: str; text: str
+    receiver: str
+    text: str
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v8"}
+def health(): return {"status": "ok", "version": "v8.1"}
 
 @app.post("/register")
 def register(u: RegisterSchema, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.username == u.username).first(): raise HTTPException(400, "Taken")
+    if db.query(User).filter(User.username == u.username).first(): 
+        raise HTTPException(400, "Taken")
     db.add(User(username=u.username, hashed_password=get_hash(u.password), avatar_data=u.avatar_data, is_admin=(u.username.lower()=="qasim")))
     db.commit()
     return {"msg": "ok"}
@@ -152,14 +169,23 @@ def register(u: RegisterSchema, db: Session = Depends(get_db)):
 @app.post("/token")
 def login(f: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == f.username).first()
-    if not user or not verify_password(f.password, user.hashed_password): raise HTTPException(400, "Fail")
-    return {"access_token": create_token({"sub": user.username}), "token_type": "bearer", "username": user.username, "avatar": user.avatar_data, "is_admin": user.is_admin}
+    if not user or not verify_password(f.password, user.hashed_password): 
+        raise HTTPException(400, "Fail")
+    return {
+        "access_token": create_token({"sub": user.username}), 
+        "token_type": "bearer", 
+        "username": user.username, 
+        "avatar": user.avatar_data, 
+        "is_admin": user.is_admin
+    }
 
 @app.post("/create_hangout/")
 def create_h(h: HangoutSchema, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     new = Hangout(title=h.title, location=h.location, host_username=u.username, image_data=h.image_data)
-    db.add(new); db.commit()
-    db.add(Participant(hangout_id=new.id, username=u.username, user_avatar=u.avatar_data)); db.commit()
+    db.add(new)
+    db.commit()
+    db.add(Participant(hangout_id=new.id, username=u.username, user_avatar=u.avatar_data))
+    db.commit()
     return {"msg": "ok"}
 
 @app.post("/like_hangout/{hangout_id}")
@@ -176,13 +202,16 @@ def like_h(hangout_id: int, u: User = Depends(get_current_user), db: Session = D
 @app.post("/join_hangout/{id}")
 def join_h(id: int, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not db.query(Participant).filter_by(hangout_id=id, username=u.username).first():
-        db.add(Participant(hangout_id=id, username=u.username, user_avatar=u.avatar_data)); db.commit()
+        db.add(Participant(hangout_id=id, username=u.username, user_avatar=u.avatar_data))
+        db.commit()
     return {"msg": "ok"}
 
 @app.delete("/delete_hangout/{id}")
 def del_h(id: int, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     h = db.query(Hangout).filter(Hangout.id == id).first()
-    if h and (h.host_username == u.username or u.is_admin): db.delete(h); db.commit()
+    if h and (h.host_username == u.username or u.is_admin): 
+        db.delete(h)
+        db.commit()
     return {"msg": "ok"}
 
 @app.post("/send_dm/")
@@ -203,6 +232,7 @@ def feed(db: Session = Depends(get_db)):
     results = []
     for h in hangouts:
         attendees = [{"name": p.username, "avatar": p.user_avatar} for p in h.participants]
+        # Only send metadata for feed (no heavy messages)
         results.append({
             "id": h.id, "title": h.title, "location": h.location, "host": h.host_username,
             "image_data": h.image_data, "attendees": attendees, "count": len(attendees),
@@ -221,11 +251,17 @@ def chat_hist(hangout_id: int, u: User = Depends(get_current_user), db: Session 
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     db = SessionLocal() 
     try:
-        try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); username = payload.get("sub")
-        except: await websocket.close(code=1008); return
+        try: 
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            username = payload.get("sub")
+        except: 
+            await websocket.close(code=1008)
+            return
             
         user = db.query(User).filter(User.username == username).first()
-        if not user: await websocket.close(code=1008); return
+        if not user: 
+            await websocket.close(code=1008)
+            return
 
         avatar = user.avatar_data
         await manager.connect(websocket, hangout_id, username)
@@ -235,9 +271,11 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
             db.add(Message(hangout_id=hangout_id, username=username, user_avatar=avatar, text=data))
             db.commit()
             await manager.broadcast({"type": "msg", "user": username, "avatar": avatar, "text": data}, hangout_id)
+            
             if "@squadbot" in data.lower():
                 reply = random.choice(["Truth or Dare?", "Who's buying?", "Drop a pin!", "Music?"])
-                db.add(Message(hangout_id=hangout_id, username="SquadBot 🤖", text=reply)); db.commit()
+                db.add(Message(hangout_id=hangout_id, username="SquadBot 🤖", text=reply))
+                db.commit()
                 await manager.broadcast({"type": "msg", "user": "SquadBot 🤖", "text": reply}, hangout_id)
 
     except WebSocketDisconnect:
@@ -247,7 +285,8 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
         print(f"WS Error: {e}")
         try: await websocket.close()
         except: pass
-    finally: db.close()
+    finally:
+        db.close()
 
 @app.get("/")
 def root(): return FileResponse("static/index.html")
