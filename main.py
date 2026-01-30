@@ -2,6 +2,7 @@ import uvicorn
 import random
 import os
 import json
+import jwt  # Using PyJWT now
 from datetime import datetime
 from typing import Optional, List, Dict
 from fastapi import FastAPI, Depends, HTTPException, WebSocket, WebSocketDisconnect, Query
@@ -12,10 +13,9 @@ from sqlalchemy import create_engine, Column, Integer, String, ForeignKey, Text,
 from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from pydantic import BaseModel
 from passlib.context import CryptContext
-from jose import JWTError, jwt
 
 # --- CONFIG ---
-SECRET_KEY = "squad-god-mode-key-v7"
+SECRET_KEY = "squad-god-mode-key-v8"
 ALGORITHM = "HS256"
 
 pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
@@ -26,7 +26,7 @@ database_url = os.environ.get("DATABASE_URL")
 if database_url and database_url.startswith("postgres://"):
     database_url = database_url.replace("postgres://", "postgresql://", 1)
 if not database_url:
-    database_url = "sqlite:///./squad_v7.db"
+    database_url = "sqlite:///./squad_v8.db"
 
 engine = create_engine(database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -34,7 +34,7 @@ Base = declarative_base()
 
 # --- MODELS ---
 class User(Base):
-    __tablename__ = "users_v7"
+    __tablename__ = "users_v8"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
@@ -42,7 +42,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
 class Hangout(Base):
-    __tablename__ = "hangouts_v7"
+    __tablename__ = "hangouts_v8"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     location = Column(String)
@@ -53,31 +53,30 @@ class Hangout(Base):
     messages = relationship("Message", back_populates="hangout", cascade="all, delete")
 
 class Participant(Base):
-    __tablename__ = "participants_v7"
+    __tablename__ = "participants_v8"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v7.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v8.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     hangout = relationship("Hangout", back_populates="participants")
 
 class Message(Base):
-    __tablename__ = "messages_v7"
+    __tablename__ = "messages_v8"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v7.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v8.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     text = Column(String)
     hangout = relationship("Hangout", back_populates="messages")
 
 class DirectMessage(Base):
-    __tablename__ = "direct_messages_v7"
+    __tablename__ = "direct_messages_v8"
     id = Column(Integer, primary_key=True, index=True)
     sender = Column(String)
     receiver = Column(String)
     text = Column(String)
     timestamp = Column(String)
 
-# Force Table Creation
 try: Base.metadata.create_all(bind=engine)
 except: pass
 
@@ -140,6 +139,9 @@ class DMSchema(BaseModel):
     receiver: str; text: str
 
 # --- ENDPOINTS ---
+@app.get("/health")
+def health(): return {"status": "ok", "version": "v8"}
+
 @app.post("/register")
 def register(u: RegisterSchema, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == u.username).first(): raise HTTPException(400, "Taken")
@@ -201,7 +203,6 @@ def feed(db: Session = Depends(get_db)):
     results = []
     for h in hangouts:
         attendees = [{"name": p.username, "avatar": p.user_avatar} for p in h.participants]
-        # Only send last 1 msg for preview, load full chat in socket
         results.append({
             "id": h.id, "title": h.title, "location": h.location, "host": h.host_username,
             "image_data": h.image_data, "attendees": attendees, "count": len(attendees),
