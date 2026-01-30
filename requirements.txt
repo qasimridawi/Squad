@@ -6,4 +6,5 @@ psycopg2-binary
 typing-extensions
 passlib
 python-multipart
-python-jose[cryptography]
+python-jose
+cryptography
