@@ -2,8 +2,5 @@ fastapi
 uvicorn
 sqlalchemy
 pydantic
-psycopg2-binary
-typing-extensions
-passlib
 python-multipart
 pyjwt
