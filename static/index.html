@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V11</title>
+    <title>Squad V11.1</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#050505">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -89,8 +89,8 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V11</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Auto-Fix Edition</p>
+            <h1 style="text-align: center; margin: 0;">Squad V11.1</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Debug Edition</p>
             <img id="reg-avatar-preview" style="width:60px; height:60px; border-radius:50%; margin:0 auto; display:none;">
             <label class="file-label" id="avatar-label">📷 Add Profile Pic
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
@@ -107,7 +107,8 @@
             <div style="display:flex; align-items:center;">
                 <button onclick="closeChat()" style="background:none; border:none; color:#666; font-size:24px; margin-right:10px;">←</button>
                 <h2 id="chat-title" style="margin:0; font-size:18px;">Chat</h2>
-                <div id="conn-status">Connecting...</div> </div>
+                <div id="conn-status">Connecting...</div>
+            </div>
         </div>
         <div id="chat-body" class="chat-body"></div>
         <div id="rec-status">Recording... Release to Send</div>
@@ -167,7 +168,7 @@
     <button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
 
     <script>
-        // NUCLEAR CACHE CLEAR
+        // CACHE CLEAR
         if(window.navigator && navigator.serviceWorker) {
             navigator.serviceWorker.getRegistrations().then(function(registrations) {
                 for(let registration of registrations) { registration.unregister(); }
@@ -233,7 +234,6 @@
             statusEl.innerText = 'Connecting...';
             statusEl.className = '';
 
-            // Load History
             const res = await fetch(`/chat_history/${id}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
             const body = document.getElementById('chat-body');
@@ -242,7 +242,12 @@
             body.scrollTop = body.scrollHeight;
 
             if(currentSocket) currentSocket.close();
-            currentSocket = new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/ws/${id}?token=${token}`);
+            
+            // FORCE WSS FOR HTTPS
+            const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+            const url = `${proto}://${location.host}/ws/${id}?token=${token}`;
+            
+            currentSocket = new WebSocket(url);
             
             currentSocket.onopen = () => { 
                 statusEl.innerText = '● Connected'; 
@@ -250,13 +255,11 @@
             };
             
             currentSocket.onclose = (e) => { 
-                statusEl.innerText = '● Disconnected'; 
+                statusEl.innerText = '● Disconnected (' + e.code + ')'; 
                 statusEl.className = 'red';
-                // FORCE LOGOUT IF USER NOT FOUND
-                if(e.code === 1008) { 
-                    alert("Account mismatch! Please Login again."); 
-                    logout(); 
-                }
+                if(e.code === 1008) { alert("Session Expired. Logging out..."); logout(); }
+                // ALERT FOR DEBUGGING
+                if(e.code === 1006) { console.log("Connection dropped (1006). Try refreshing."); }
             };
             
             currentSocket.onmessage = e => {
@@ -311,7 +314,7 @@
                 mediaRecorder.start(); audioChunks = [];
                 mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
             } catch(e) { 
-                alert("Mic Access Denied. Check settings."); 
+                alert("Mic Access Denied."); 
                 micBtn.classList.remove('recording');
                 document.getElementById('rec-status').style.display = 'none';
             }
