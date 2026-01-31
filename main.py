@@ -15,12 +15,11 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-final-v13"
+SECRET_KEY = "squad-v13-final-fix"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE ---
-# Using SQLite for maximum stability on free servers
 database_url = "sqlite:///./squad_v13.db"
 engine = create_engine(database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
@@ -72,7 +71,6 @@ class DirectMessage(Base):
     text = Column(String)
     timestamp = Column(String)
 
-# Create Tables
 try: Base.metadata.create_all(bind=engine)
 except: pass
 
@@ -113,23 +111,16 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# --- SAFE HELPERS (NO EXTERNAL LIBS) ---
+# --- HELPERS (Standard Lib Only) ---
 def get_db():
     db = SessionLocal(); try: yield db; finally: db.close()
 
-def get_hash(password):
-    return hashlib.sha256(password.encode()).hexdigest()
-
-def verify_password(plain, hashed):
-    return get_hash(plain) == hashed
-
-def create_token(data: dict):
-    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
+def get_hash(p): return hashlib.sha256(p.encode()).hexdigest()
+def verify_password(p, h): return get_hash(p) == h
+def create_token(d): return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    try: 
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user = db.query(User).filter(User.username == payload.get("sub")).first()
+    try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); user = db.query(User).filter(User.username == payload.get("sub")).first()
     except: raise HTTPException(status_code=401)
     if not user: raise HTTPException(status_code=401)
     return user
