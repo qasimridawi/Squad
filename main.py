@@ -15,19 +15,20 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-platinum-v12-1"
+SECRET_KEY = "squad-final-v13"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE ---
-database_url = "sqlite:///./squad_v12_1.db"
+# Using SQLite for maximum stability on free servers
+database_url = "sqlite:///./squad_v13.db"
 engine = create_engine(database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # --- MODELS ---
 class User(Base):
-    __tablename__ = "users_v12_1"
+    __tablename__ = "users_v13"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
@@ -35,7 +36,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
 class Hangout(Base):
-    __tablename__ = "hangouts_v12_1"
+    __tablename__ = "hangouts_v13"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     location = Column(String)
@@ -47,35 +48,33 @@ class Hangout(Base):
     messages = relationship("Message", back_populates="hangout", cascade="all, delete")
 
 class Participant(Base):
-    __tablename__ = "participants_v12_1"
+    __tablename__ = "participants_v13"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v12_1.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v13.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     hangout = relationship("Hangout", back_populates="participants")
 
 class Message(Base):
-    __tablename__ = "messages_v12_1"
+    __tablename__ = "messages_v13"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v12_1.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v13.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     text = Column(String)
     hangout = relationship("Hangout", back_populates="messages")
 
 class DirectMessage(Base):
-    __tablename__ = "direct_messages_v12_1"
+    __tablename__ = "direct_messages_v13"
     id = Column(Integer, primary_key=True, index=True)
     sender = Column(String)
     receiver = Column(String)
     text = Column(String)
     timestamp = Column(String)
 
-# Database Safety Check
-try:
-    Base.metadata.create_all(bind=engine)
-except Exception as e:
-    print(f"DB Init Warning: {e}")
+# Create Tables
+try: Base.metadata.create_all(bind=engine)
+except: pass
 
 # --- APP ---
 app = FastAPI()
@@ -114,36 +113,34 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# --- HELPERS (Standard Lib Only) ---
+# --- SAFE HELPERS (NO EXTERNAL LIBS) ---
 def get_db():
     db = SessionLocal(); try: yield db; finally: db.close()
 
-def get_hash(p): 
-    return hashlib.sha256(p.encode()).hexdigest()
+def get_hash(password):
+    return hashlib.sha256(password.encode()).hexdigest()
 
-def verify_password(p, h): 
-    return get_hash(p) == h
+def verify_password(plain, hashed):
+    return get_hash(plain) == hashed
 
-def create_token(d): 
-    return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
+def create_token(data: dict):
+    return jwt.encode(data, SECRET_KEY, algorithm=ALGORITHM)
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     try: 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user = db.query(User).filter(User.username == payload.get("sub")).first()
-    except: 
-        raise HTTPException(status_code=401)
+    except: raise HTTPException(status_code=401)
     if not user: raise HTTPException(status_code=401)
     return user
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v12.1"}
+def health(): return {"status": "ok", "version": "v13"}
 
 @app.post("/register")
 def register(u: dict, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.username == u['username']).first(): 
-        raise HTTPException(400, "Taken")
+    if db.query(User).filter(User.username == u['username']).first(): raise HTTPException(400, "Taken")
     db.add(User(username=u['username'], hashed_password=get_hash(u['password']), avatar_data=u.get('avatar_data'), is_admin=(u['username'].lower()=="qasim")))
     db.commit()
     return {"msg": "ok"}
@@ -151,15 +148,8 @@ def register(u: dict, db: Session = Depends(get_db)):
 @app.post("/token")
 def login(f: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == f.username).first()
-    if not user or not verify_password(f.password, user.hashed_password): 
-        raise HTTPException(400, "Fail")
-    return {
-        "access_token": create_token({"sub": user.username}), 
-        "token_type": "bearer", 
-        "username": user.username, 
-        "avatar": user.avatar_data, 
-        "is_admin": user.is_admin
-    }
+    if not user or not verify_password(f.password, user.hashed_password): raise HTTPException(400, "Fail")
+    return {"access_token": create_token({"sub": user.username}), "token_type": "bearer", "username": user.username, "avatar": user.avatar_data, "is_admin": user.is_admin}
 
 class HangoutSchema(BaseModel):
     title: str; location: str; image_data: Optional[str] = None; video_data: Optional[str] = None
@@ -167,10 +157,8 @@ class HangoutSchema(BaseModel):
 @app.post("/create_hangout/")
 def create_h(h: HangoutSchema, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     new = Hangout(title=h.title, location=h.location, host_username=u.username, image_data=h.image_data, video_data=h.video_data)
-    db.add(new)
-    db.commit()
-    db.add(Participant(hangout_id=new.id, username=u.username, user_avatar=u.avatar_data))
-    db.commit()
+    db.add(new); db.commit()
+    db.add(Participant(hangout_id=new.id, username=u.username, user_avatar=u.avatar_data)); db.commit()
     return {"msg": "ok"}
 
 @app.post("/like_hangout/{hangout_id}")
@@ -187,16 +175,13 @@ def like_h(hangout_id: int, u: User = Depends(get_current_user), db: Session = D
 @app.post("/join_hangout/{id}")
 def join_h(id: int, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     if not db.query(Participant).filter_by(hangout_id=id, username=u.username).first():
-        db.add(Participant(hangout_id=id, username=u.username, user_avatar=u.avatar_data))
-        db.commit()
+        db.add(Participant(hangout_id=id, username=u.username, user_avatar=u.avatar_data)); db.commit()
     return {"msg": "ok"}
 
 @app.delete("/delete_hangout/{id}")
 def del_h(id: int, u: User = Depends(get_current_user), db: Session = Depends(get_db)):
     h = db.query(Hangout).filter(Hangout.id == id).first()
-    if h and (h.host_username == u.username or u.is_admin): 
-        db.delete(h)
-        db.commit()
+    if h and (h.host_username == u.username or u.is_admin): db.delete(h); db.commit()
     return {"msg": "ok"}
 
 class DMSchema(BaseModel):
@@ -238,17 +223,11 @@ def chat_hist(hangout_id: int, u: User = Depends(get_current_user), db: Session 
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     db = SessionLocal() 
     try:
-        try: 
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-        except: 
-            await websocket.close(code=1008)
-            return
+        try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); username = payload.get("sub")
+        except: await websocket.close(code=1008); return
             
         user = db.query(User).filter(User.username == username).first()
-        if not user: 
-            await websocket.close(code=1008)
-            return
+        if not user: await websocket.close(code=1008); return
 
         avatar = user.avatar_data
         await manager.connect(websocket, hangout_id, username)
@@ -258,11 +237,9 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
             db.add(Message(hangout_id=hangout_id, username=username, user_avatar=avatar, text=data))
             db.commit()
             await manager.broadcast({"type": "msg", "user": username, "avatar": avatar, "text": data}, hangout_id)
-            
             if "@squadbot" in data.lower():
                 reply = random.choice(["Truth or Dare?", "Who's buying?", "Drop a pin!", "Music?"])
-                db.add(Message(hangout_id=hangout_id, username="SquadBot 🤖", text=reply))
-                db.commit()
+                db.add(Message(hangout_id=hangout_id, username="SquadBot 🤖", text=reply)); db.commit()
                 await manager.broadcast({"type": "msg", "user": "SquadBot 🤖", "text": reply}, hangout_id)
 
     except WebSocketDisconnect:
@@ -271,8 +248,7 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
     except Exception as e:
         try: await websocket.close()
         except: pass
-    finally:
-        db.close()
+    finally: db.close()
 
 @app.get("/")
 def root(): return FileResponse("static/index.html")
