@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V17.1</title>
+    <title>Squad V18</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -26,24 +26,34 @@
         #map-view { height: calc(100vh - 120px); display: none; }
         #feed-view { display: block; padding-top: 10px; }
 
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 16px; margin: 16px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .card-header { display: flex; justify-content: space-between; align-items: center; }
-        .title { font-size: 19px; font-weight: 700; max-width: 75%; line-height: 1.2; }
+        /* EVENT CARD STYLE */
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 16px; margin: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); position: relative; }
+        
+        .time-badge { background: #FF3B30; color: white; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; align-self: flex-start; margin-bottom: 5px; display: inline-flex; align-items: center; gap: 5px; }
+        
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
+        .title { font-size: 20px; font-weight: 800; line-height: 1.1; margin-bottom: 5px; }
+        .location { color: #888; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        
         .actions { display: flex; gap: 15px; align-items: center; }
         .like-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #555; display: flex; flex-direction: column; align-items: center; padding:0; }
         .like-btn.liked { color: #FF2D55; transform: scale(1.1); transition: 0.2s; }
         
-        .media-content { width: 100%; border-radius: 16px; object-fit: cover; display: none; max-height: 400px; border: 1px solid var(--border); }
+        .media-content { width: 100%; border-radius: 16px; object-fit: cover; display: none; max-height: 250px; border: 1px solid var(--border); margin-top: 5px; }
         .media-content.show { display: block; }
 
-        .attendees { display: flex; gap: -10px; overflow-x: auto; padding: 5px 0; align-items: center; height: 40px; }
-        .attendee-face { width: 34px; height: 34px; border-radius: 50%; border: 2px solid var(--card); background: #333; object-fit: cover; margin-right: -10px; }
+        .attendees-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; background: #1c1c1e; padding: 8px 12px; border-radius: 16px; }
+        .attendees { display: flex; gap: -8px; }
+        .attendee-face { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #1c1c1e; background: #333; object-fit: cover; margin-right: -8px; }
+        .spots-left { font-size: 12px; color: #888; font-weight: 600; margin-left: 10px; }
 
         .btn-row { display: flex; gap: 10px; margin-top: 5px; }
         .btn { flex: 1; padding: 14px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; font-size: 15px; text-align: center; }
         .btn-join { background: white; color: black; }
+        .btn-full { background: #333; color: #666; cursor: not-allowed; }
         .btn-chat { background: #2c2c2e; color: white; }
 
+        /* CHAT & MODALS */
         #chat-modal { display: none; background: black; z-index: 2000; width:100%; height:100%; position:fixed; top:0; left:0; } 
         .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(20,20,20,0.95); border-bottom: 1px solid var(--border); }
         .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 140px); padding-bottom: 100px; }
@@ -55,22 +65,18 @@
         .msg-bubble { font-size: 15px; padding: 10px 16px; border-radius: 20px; line-height: 1.4; word-wrap: break-word; color: white; }
         .msg-row:not(.mine) .msg-bubble { background: #2c2c2e; border-bottom-left-radius: 4px; }
         .msg-row.mine .msg-bubble { background: linear-gradient(135deg, #007AFF, #0055ff); border-bottom-right-radius: 4px; }
-        
         .chat-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: white; padding: 12px 15px; border-radius: 25px; outline: none; font-size: 16px; }
-        
-        /* NEW MIC BUTTON STYLE */
         .mic-btn { width: 45px; height: 45px; border-radius: 50%; background: #2c2c2e; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; -webkit-user-select: none; }
         .mic-btn.recording { background: #FF3B30; animation: pulse 1s infinite; transform: scale(1.1); box-shadow: 0 0 15px #FF3B30; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .inbox-btn { position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px; background: #1c1c1e; border-radius: 50%; border: 1px solid #333; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
-        .fab { position: fixed; bottom: 25px; right: 20px; width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF, #00C6FF); border-radius: 50%; border: none; color: white; font-size: 32px; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.4); cursor: pointer; z-index: 100; }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 3000; display: flex; justify-content: center; align-items: center; }
         .modal-box { width: 85%; max-width: 350px; background: #1c1c1e; padding: 30px; border-radius: 30px; border: 1px solid #333; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
         .modal-input { padding: 15px; background: #2c2c2e; border: none; color: white; border-radius: 12px; font-size: 16px; width: 100%; box-sizing: border-box; }
         .file-label { background: #2c2c2e; padding: 15px; border-radius: 12px; text-align: center; color: #aaa; cursor: pointer; border: 1px dashed #444; font-size: 14px; display: block; }
         
+        .inbox-btn { position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px; background: #1c1c1e; border-radius: 50%; border: 1px solid #333; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
+        .fab { position: fixed; bottom: 25px; right: 20px; width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF, #00C6FF); border-radius: 50%; border: none; color: white; font-size: 32px; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.4); cursor: pointer; z-index: 100; }
         #conn-status { font-size: 11px; font-weight: bold; margin-left: 10px; }
         .green { color: #32D74B; } .red { color: #FF3B30; }
     </style>
@@ -79,8 +85,8 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V17.1</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Mic Fixed</p>
+            <h1 style="text-align: center; margin: 0;">Squad V18</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Moscow Mode</p>
             <img id="reg-avatar-preview" style="width:70px; height:70px; border-radius:50%; margin:0 auto; display:none; border:2px solid #007AFF;">
             <label class="file-label">📷 Profile Pic <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)"></label>
             <input type="text" id="login-user" class="modal-input" placeholder="Username">
@@ -109,11 +115,14 @@
 
     <div id="create-modal" class="modal" style="display: none;">
         <div class="modal-box">
-            <h2 style="text-align: center; margin: 0;">New Post</h2>
-            <input type="text" id="new-title" class="modal-input" placeholder="Title">
+            <h2 style="text-align: center; margin: 0;">Plan Hangout</h2>
+            <input type="text" id="new-title" class="modal-input" placeholder="Activity (e.g. Cinema)">
             <input type="text" id="new-loc" class="modal-input" placeholder="Location">
+            <div style="display:flex; gap:10px;">
+                <input type="time" id="new-time" class="modal-input" style="flex:1">
+                <input type="number" id="new-max" class="modal-input" placeholder="Max People" style="flex:1" value="4">
+            </div>
             <label class="file-label">📷 Photo (Optional) <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
-            <label class="file-label">📹 Video (Max 5MB) <input type="file" id="new-vid" style="display: none;" accept="video/*"></label>
             <div class="btn-row">
                 <button class="btn btn-chat" onclick="document.getElementById('create-modal').style.display='none'">Cancel</button>
                 <button class="btn btn-join" style="background:#007AFF; color:white;" onclick="submitCreate()">Post</button>
@@ -169,7 +178,7 @@
             const data = await res.json();
             markers.forEach(m => map.removeLayer(m)); markers = [];
             data.feed.forEach(h => {
-                const m = L.marker([55.7558 + (Math.random()-0.5)*0.1, 37.6173 + (Math.random()-0.5)*0.1]).addTo(map).bindPopup(`<b>${h.title}</b><br>${h.location}`);
+                const m = L.marker([55.7558 + (Math.random()-0.5)*0.1, 37.6173 + (Math.random()-0.5)*0.1]).addTo(map).bindPopup(`<b>${h.title}</b><br>⏰ ${h.event_time}`);
                 markers.push(m);
             });
         }
@@ -188,20 +197,11 @@
             body.scrollTop = body.scrollHeight;
 
             if(currentSocket) currentSocket.close();
-            
-            // FORCE SECURE WSS
             const proto = location.protocol === 'https:' ? 'wss' : 'ws';
             currentSocket = new WebSocket(`${proto}://${location.host}/ws/${id}?token=${token}`);
-            
             currentSocket.onopen = () => { document.getElementById('conn-status').innerText = '● Online'; document.getElementById('conn-status').className = 'green'; };
-            currentSocket.onclose = (e) => { 
-                document.getElementById('conn-status').innerText = '● Disconnected'; document.getElementById('conn-status').className = 'red';
-                if(e.code === 1008) { alert("Session Expired. Please Login Again."); logout(); }
-            };
-            currentSocket.onmessage = e => {
-                const d = JSON.parse(e.data);
-                if(d.type === 'msg') { body.innerHTML += renderMsg(d); body.scrollTop = body.scrollHeight; }
-            };
+            currentSocket.onclose = (e) => { document.getElementById('conn-status').innerText = '● Disconnected'; document.getElementById('conn-status').className = 'red'; if(e.code === 1008) { alert("Session Expired"); logout(); } };
+            currentSocket.onmessage = e => { const d = JSON.parse(e.data); if(d.type === 'msg') { body.innerHTML += renderMsg(d); body.scrollTop = body.scrollHeight; } };
         }
 
         function closeChat() { document.getElementById('chat-modal').style.display = 'none'; if(currentSocket) currentSocket.close(); }
@@ -214,31 +214,18 @@
             </div>`;
         }
         
-        // --- FIXED MIC LOGIC ---
-        let mediaRecorder; let audioChunks = []; let isRecording = false;
-        const micBtn = document.getElementById('mic-btn');
-
+        let mediaRecorder; let audioChunks = []; let isRecording = false; const micBtn = document.getElementById('mic-btn');
         async function toggleRecord() {
             if (!isRecording) {
-                // START RECORDING
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                    alert("Microphone not supported. Please use Chrome/Safari and ensure HTTPS.");
-                    return;
-                }
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert("Mic not supported."); return; }
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     mediaRecorder = new MediaRecorder(stream);
-                    mediaRecorder.start(); 
-                    audioChunks = [];
+                    mediaRecorder.start(); audioChunks = [];
                     mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    
-                    isRecording = true;
-                    micBtn.classList.add('recording');
-                } catch(e) {
-                    alert("Microphone access denied. Please check browser settings.");
-                }
+                    isRecording = true; micBtn.classList.add('recording');
+                } catch(e) { alert("Mic denied."); }
             } else {
-                // STOP AND SEND
                 if(mediaRecorder && mediaRecorder.state !== 'inactive') {
                     mediaRecorder.stop();
                     mediaRecorder.onstop = () => {
@@ -248,8 +235,7 @@
                         reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); }
                     };
                 }
-                isRecording = false;
-                micBtn.classList.remove('recording');
+                isRecording = false; micBtn.classList.remove('recording');
             }
         }
 
@@ -264,31 +250,48 @@
                 const isHost = h.host === currentUser;
                 const canDelete = isHost || isAdmin;
                 const hasImg = h.image_data ? 'show' : '';
-                const hasVid = h.video_data ? 'show' : '';
                 let faces = '';
                 h.attendees.forEach(a => { faces += `<img src="${a.avatar||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="attendee-face">`; });
 
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.innerHTML = `
+                    <div class="time-badge">⏰ ${h.event_time}</div>
                     <div class="card-header"><div class="title">${h.title}</div><div class="actions"><button class="like-btn ${h.liked_by_me ? 'liked' : ''}" onclick="like(${h.id})">❤️<span class="like-count">${h.likes}</span></button>${canDelete ? `<button class="delete-btn" onclick="del(${h.id})">🗑️</button>` : ''}</div></div>
+                    <div class="location">📍 ${h.location}</div>
                     <img src="${h.image_data||''}" class="media-content event-img ${hasImg}">
-                    <video src="${h.video_data||''}" class="media-content ${hasVid}" controls></video>
-                    <div style="color:#666; font-size:13px;">📍 ${h.location}</div>
-                    <div class="attendees">${faces}</div>
-                    <div class="btn-row"><button class="btn btn-join" onclick="join(${h.id})">Join</button><button class="btn btn-chat" onclick="openChat(${h.id}, '${h.title}')">💬 Chat</button></div>`;
+                    <div class="attendees-row">
+                        <div class="attendees">${faces}</div>
+                        <div class="spots-left">${h.count} / ${h.max_people} Joined</div>
+                    </div>
+                    <div class="btn-row">
+                        ${h.is_full && !h.attendees.some(a=>a.username===currentUser) ? 
+                            `<button class="btn btn-full">Full 🚫</button>` : 
+                            `<button class="btn btn-join" onclick="join(${h.id})">Join</button>`}
+                        <button class="btn btn-chat" onclick="openChat(${h.id}, '${h.title}')">💬 Chat</button>
+                    </div>`;
                 div.appendChild(card);
             });
             if(map) loadMapMarkers();
         }
 
         function resizeImage(file, w, h) { return new Promise((resolve) => { if(!file) resolve(null); const img = new Image(); img.src = URL.createObjectURL(file); img.onload = () => { const cvs = document.createElement('canvas'); let scale = Math.max(w/img.width, h/img.height); cvs.width = w; cvs.height = h; cvs.getContext('2d').drawImage(img, 0,0, img.width*scale, img.height*scale); resolve(cvs.toDataURL('image/jpeg', 0.7)); }; }); }
-        function fileToBase64(file) { return new Promise((resolve) => { if(!file) resolve(null); const r = new FileReader(); r.readAsDataURL(file); r.onload = () => resolve(r.result); }); }
         async function previewAvatar(i) { selectedFileGlobal = i.files[0]; const r = await resizeImage(selectedFileGlobal, 200, 200); document.getElementById('reg-avatar-preview').src = r; document.getElementById('reg-avatar-preview').style.display = 'block'; }
         async function register() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; let av = selectedFileGlobal ? await resizeImage(selectedFileGlobal, 150, 150) : null; const res = await fetch('/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p, avatar_data:av}) }); if(res.ok) alert("Welcome! Login now."); else alert("Taken"); }
         async function login() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; const res = await fetch('/token', { method: 'POST', body: new URLSearchParams({username:u, password:p}) }); const d = await res.json(); if(res.ok) { token = d.access_token; currentUser = d.username; currentAvatar = d.avatar; isAdmin = d.is_admin; localStorage.setItem('squad_token', token); localStorage.setItem('squad_user', currentUser); localStorage.setItem('squad_avatar', currentAvatar||''); localStorage.setItem('squad_admin', isAdmin); document.getElementById('login-modal').style.display='none'; updateBadge(); loadFeed(); } else alert("Fail"); }
-        async function submitCreate() { let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; let f = document.getElementById('new-img').files[0]; let v = document.getElementById('new-vid').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; let vid = v ? await fileToBase64(v) : null; await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, image_data:img, video_data:vid}) }); document.getElementById('create-modal').style.display='none'; loadFeed(); }
-        async function join(id) { await fetch(`/join_hangout/${id}`, {method:'POST', headers:{'Authorization':`Bearer ${token}`}}); loadFeed(); }
+        async function submitCreate() { 
+            let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; 
+            let tm = document.getElementById('new-time').value || "Now"; let mx = document.getElementById('new-max').value || 4;
+            let f = document.getElementById('new-img').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; 
+            if(!t) return alert("Title needed");
+            await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, event_time:tm, max_people:parseInt(mx), image_data:img}) }); 
+            document.getElementById('create-modal').style.display='none'; loadFeed(); 
+        }
+        async function join(id) { 
+            const res = await fetch(`/join_hangout/${id}`, {method:'POST', headers:{'Authorization':`Bearer ${token}`}}); 
+            if(res.status === 400) alert("Event is Full!");
+            loadFeed(); 
+        }
         async function like(id) { await fetch(`/like_hangout/${id}`, { method: 'POST', headers: {'Authorization': `Bearer ${token}`} }); loadFeed(); }
         async function del(id) { if(confirm("Del?")) await fetch(`/delete_hangout/${id}`, {method:'DELETE', headers:{'Authorization':`Bearer ${token}`}}); loadFeed(); }
         async function openInbox() { document.getElementById('inbox-modal').style.display = 'flex'; const res = await fetch('/get_dms/', { headers: {'Authorization': `Bearer ${token}`} }); const msgs = await res.json(); const list = document.getElementById('inbox-list'); list.innerHTML = ''; msgs.reverse().forEach(m => { list.innerHTML += `<div style="background:#222;padding:10px;margin-bottom:5px;border-radius:10px;"><b>${m.sender===currentUser?'Me':m.sender}</b>: ${m.text}</div>`; }); }
