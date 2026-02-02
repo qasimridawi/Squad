@@ -15,12 +15,13 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-v13-final-fix"
+SECRET_KEY = "squad-v13-lite-fix"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE ---
-database_url = "sqlite:///./squad_v13.db"
+# Using SQLite for maximum stability on free servers
+database_url = "sqlite:///./squad_v13_lite.db"
 engine = create_engine(database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -71,6 +72,7 @@ class DirectMessage(Base):
     text = Column(String)
     timestamp = Column(String)
 
+# Database Safety Check
 try: Base.metadata.create_all(bind=engine)
 except: pass
 
@@ -111,7 +113,7 @@ class ConnectionManager:
 
 manager = ConnectionManager()
 
-# --- HELPERS (Standard Lib Only) ---
+# --- HELPERS (Pure Python) ---
 def get_db():
     db = SessionLocal(); try: yield db; finally: db.close()
 
@@ -127,7 +129,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v13"}
+def health(): return {"status": "ok", "version": "v13.1"}
 
 @app.post("/register")
 def register(u: dict, db: Session = Depends(get_db)):
