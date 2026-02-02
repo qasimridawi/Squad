@@ -13,16 +13,14 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-v15-json-core"
+SECRET_KEY = "squad-v16-minimal"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-DB_FILE = "squad_db.json"
+DB_FILE = "squad_db_v16.json"
 
 # --- JSON DATABASE ENGINE ---
-# This replaces the heavy SQLAlchemy engine with a simple file reader
 def load_db():
     if not os.path.exists(DB_FILE):
-        # Create default empty DB structure
         default_db = {"users": [], "hangouts": [], "dms": []}
         with open(DB_FILE, 'w') as f: json.dump(default_db, f)
         return default_db
@@ -37,7 +35,6 @@ def save_db(data):
 # --- APP ---
 app = FastAPI()
 
-# AUTO-FIX: Create static folder
 if not os.path.exists("static"): os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -45,32 +42,23 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[int, List[WebSocket]] = {}
-        self.online_users: set = set()
 
-    async def connect(self, websocket: WebSocket, hangout_id: int, username: str):
+    async def connect(self, websocket: WebSocket, hangout_id: int):
         await websocket.accept()
         if hangout_id not in self.active_connections:
             self.active_connections[hangout_id] = []
         self.active_connections[hangout_id].append(websocket)
-        self.online_users.add(username)
-        await self.broadcast_status(hangout_id)
 
-    def disconnect(self, websocket: WebSocket, hangout_id: int, username: str):
+    def disconnect(self, websocket: WebSocket, hangout_id: int):
         if hangout_id in self.active_connections:
             if websocket in self.active_connections[hangout_id]:
                 self.active_connections[hangout_id].remove(websocket)
-        if username in self.online_users:
-            self.online_users.remove(username)
         
     async def broadcast(self, message: dict, hangout_id: int):
         if hangout_id in self.active_connections:
             for connection in self.active_connections[hangout_id][:]:
                 try: await connection.send_json(message)
                 except: pass
-
-    async def broadcast_status(self, hangout_id: int):
-        msg = {"type": "status", "online_users": list(self.online_users)}
-        await self.broadcast(msg, hangout_id)
 
 manager = ConnectionManager()
 
@@ -91,7 +79,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v15_json"}
+def health(): return {"status": "ok", "version": "v16"}
 
 @app.post("/register")
 def register(u: dict):
@@ -170,7 +158,6 @@ def join_h(id: int, u: dict = Depends(get_current_user)):
 @app.delete("/delete_hangout/{id}")
 def del_h(id: int, u: dict = Depends(get_current_user)):
     db = load_db()
-    # Filter out the hangout if user is host or admin
     original_len = len(db["hangouts"])
     db["hangouts"] = [h for h in db["hangouts"] if not (h["id"] == id and (h["host_username"] == u["username"] or u["is_admin"]))]
     if len(db["hangouts"]) < original_len:
@@ -183,7 +170,6 @@ class DMSchema(BaseModel):
 @app.post("/send_dm/")
 def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
     db = load_db()
-    # Check if receiver exists
     if any(user["username"] == dm.receiver for user in db["users"]):
         new_dm = {
             "sender": u["username"],
@@ -232,13 +218,11 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
         if not user: await websocket.close(code=1008); return
 
         avatar = user["avatar_data"]
-        await manager.connect(websocket, hangout_id, username)
+        await manager.connect(websocket, hangout_id)
         
         while True:
             data = await websocket.receive_text()
-            
-            # Save message to JSON
-            db = load_db() # Reload to get latest state
+            db = load_db()
             for h in db["hangouts"]:
                 if h["id"] == hangout_id:
                     msg_obj = {"user": username, "avatar": avatar, "text": data}
@@ -249,8 +233,7 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
             await manager.broadcast({"type": "msg", "user": username, "avatar": avatar, "text": data}, hangout_id)
             
             if "@squadbot" in data.lower():
-                reply = random.choice(["Truth or Dare?", "Who's buying?", "Drop a pin!", "Music?"])
-                # Save Bot Msg
+                reply = random.choice(["I'm down!", "What time?", "Send location!", "Anyone else coming?"])
                 for h in db["hangouts"]:
                     if h["id"] == hangout_id:
                         h["messages"].append({"user": "SquadBot 🤖", "text": reply})
@@ -259,10 +242,8 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
                 await manager.broadcast({"type": "msg", "user": "SquadBot 🤖", "text": reply}, hangout_id)
 
     except WebSocketDisconnect:
-        manager.disconnect(websocket, hangout_id, username)
-        await manager.broadcast_status(hangout_id)
+        manager.disconnect(websocket, hangout_id)
     except Exception as e:
-        print(f"WS Error: {e}")
         try: await websocket.close()
         except: pass
 
