@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn==0.20.0
 pydantic
+python-multipart
 pyjwt
-websockets
