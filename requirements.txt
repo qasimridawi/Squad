@@ -1,5 +1,7 @@
 fastapi
-uvicorn==0.20.0
+uvicorn
+sqlalchemy
 pydantic
 python-multipart
 pyjwt
+wsproto
