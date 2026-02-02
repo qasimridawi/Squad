@@ -15,20 +15,19 @@ from sqlalchemy.orm import declarative_base, sessionmaker, relationship, Session
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-v13-lite-fix"
+SECRET_KEY = "squad-v14-pure-python"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 # --- DATABASE ---
-# Using SQLite for maximum stability on free servers
-database_url = "sqlite:///./squad_v13_lite.db"
+database_url = "sqlite:///./squad_v14.db"
 engine = create_engine(database_url, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # --- MODELS ---
 class User(Base):
-    __tablename__ = "users_v13"
+    __tablename__ = "users_v14"
     id = Column(Integer, primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     hashed_password = Column(String)
@@ -36,7 +35,7 @@ class User(Base):
     is_admin = Column(Boolean, default=False)
 
 class Hangout(Base):
-    __tablename__ = "hangouts_v13"
+    __tablename__ = "hangouts_v14"
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String)
     location = Column(String)
@@ -48,24 +47,24 @@ class Hangout(Base):
     messages = relationship("Message", back_populates="hangout", cascade="all, delete")
 
 class Participant(Base):
-    __tablename__ = "participants_v13"
+    __tablename__ = "participants_v14"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v13.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v14.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     hangout = relationship("Hangout", back_populates="participants")
 
 class Message(Base):
-    __tablename__ = "messages_v13"
+    __tablename__ = "messages_v14"
     id = Column(Integer, primary_key=True, index=True)
-    hangout_id = Column(Integer, ForeignKey("hangouts_v13.id"))
+    hangout_id = Column(Integer, ForeignKey("hangouts_v14.id"))
     username = Column(String)
     user_avatar = Column(Text, nullable=True)
     text = Column(String)
     hangout = relationship("Hangout", back_populates="messages")
 
 class DirectMessage(Base):
-    __tablename__ = "direct_messages_v13"
+    __tablename__ = "direct_messages_v14"
     id = Column(Integer, primary_key=True, index=True)
     sender = Column(String)
     receiver = Column(String)
@@ -78,6 +77,11 @@ except: pass
 
 # --- APP ---
 app = FastAPI()
+
+# SAFETY: Create static folder if missing to prevent crash
+if not os.path.exists("static"):
+    os.makedirs("static")
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- WEBSOCKET MANAGER ---
@@ -129,7 +133,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v13.1"}
+def health(): return {"status": "ok", "version": "v14"}
 
 @app.post("/register")
 def register(u: dict, db: Session = Depends(get_db)):
