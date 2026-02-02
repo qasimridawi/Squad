@@ -13,10 +13,10 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
 # --- CONFIG ---
-SECRET_KEY = "squad-v16-minimal"
+SECRET_KEY = "squad-v18-moscow-mode"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-DB_FILE = "squad_db_v16.json"
+DB_FILE = "squad_db_v18.json"
 
 # --- JSON DATABASE ENGINE ---
 def load_db():
@@ -79,7 +79,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v16"}
+def health(): return {"status": "ok", "version": "v18_event"}
 
 @app.post("/register")
 def register(u: dict):
@@ -111,8 +111,13 @@ def login(f: OAuth2PasswordRequestForm = Depends()):
         "is_admin": user["is_admin"]
     }
 
+# NEW SCHEMA: No Video, Added Time/Max People
 class HangoutSchema(BaseModel):
-    title: str; location: str; image_data: Optional[str] = None; video_data: Optional[str] = None
+    title: str
+    location: str
+    event_time: str
+    max_people: int
+    image_data: Optional[str] = None
 
 @app.post("/create_hangout/")
 def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
@@ -122,9 +127,10 @@ def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
         "id": new_id,
         "title": h.title,
         "location": h.location,
+        "event_time": h.event_time,
+        "max_people": h.max_people,
         "host_username": u["username"],
         "image_data": h.image_data,
-        "video_data": h.video_data,
         "likes": [],
         "attendees": [{"username": u["username"], "avatar": u["avatar_data"]}],
         "messages": []
@@ -149,6 +155,10 @@ def join_h(id: int, u: dict = Depends(get_current_user)):
     db = load_db()
     for h in db["hangouts"]:
         if h["id"] == id:
+            # Check if full
+            if len(h["attendees"]) >= h["max_people"]:
+                raise HTTPException(400, "Full")
+                
             if not any(a["username"] == u["username"] for a in h["attendees"]):
                 h["attendees"].append({"username": u["username"], "avatar": u["avatar_data"]})
                 save_db(db)
@@ -193,10 +203,16 @@ def feed(u: dict = Depends(get_current_user)):
     results = []
     for h in db["hangouts"]:
         results.append({
-            "id": h["id"], "title": h["title"], "location": h["location"], "host": h["host_username"],
-            "image_data": h.get("image_data"), "video_data": h.get("video_data"),
-            "attendees": h["attendees"], "count": len(h["attendees"]),
-            "likes": len(h["likes"]), "liked_by_me": (u["username"] in h["likes"])
+            "id": h["id"], "title": h["title"], "location": h["location"],
+            "event_time": h.get("event_time", "Now"), 
+            "max_people": h.get("max_people", 5),
+            "host": h["host_username"],
+            "image_data": h.get("image_data"),
+            "attendees": h["attendees"], 
+            "count": len(h["attendees"]),
+            "is_full": len(h["attendees"]) >= h.get("max_people", 5),
+            "likes": len(h["likes"]), 
+            "liked_by_me": (u["username"] in h["likes"])
         })
     return {"feed": results}
 
