@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V17</title>
+    <title>Squad V17.1</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
@@ -12,7 +12,7 @@
 
     <style>
         :root { --bg: #000; --card: #121212; --border: #2a2a2a; --accent: #007AFF; --text: #fff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; overscroll-behavior: none; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
         
         header { padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
         h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
@@ -57,8 +57,10 @@
         .msg-row.mine .msg-bubble { background: linear-gradient(135deg, #007AFF, #0055ff); border-bottom-right-radius: 4px; }
         
         .chat-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: white; padding: 12px 15px; border-radius: 25px; outline: none; font-size: 16px; }
-        .mic-btn { width: 45px; height: 45px; border-radius: 50%; background: #2c2c2e; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; }
-        .mic-btn.recording { background: #FF3B30; animation: pulse 1s infinite; }
+        
+        /* NEW MIC BUTTON STYLE */
+        .mic-btn { width: 45px; height: 45px; border-radius: 50%; background: #2c2c2e; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; -webkit-user-select: none; }
+        .mic-btn.recording { background: #FF3B30; animation: pulse 1s infinite; transform: scale(1.1); box-shadow: 0 0 15px #FF3B30; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         .inbox-btn { position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px; background: #1c1c1e; border-radius: 50%; border: 1px solid #333; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
@@ -77,8 +79,8 @@
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V17</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Connection Fixed</p>
+            <h1 style="text-align: center; margin: 0;">Squad V17.1</h1>
+            <p style="text-align: center; color: #666; font-size: 14px;">Mic Fixed</p>
             <img id="reg-avatar-preview" style="width:70px; height:70px; border-radius:50%; margin:0 auto; display:none; border:2px solid #007AFF;">
             <label class="file-label">📷 Profile Pic <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)"></label>
             <input type="text" id="login-user" class="modal-input" placeholder="Username">
@@ -99,7 +101,7 @@
         </div>
         <div id="chat-body" class="chat-body"></div>
         <div class="chat-footer">
-            <button class="mic-btn" id="mic-btn">🎙️</button>
+            <button class="mic-btn" id="mic-btn" onclick="toggleRecord()">🎙️</button>
             <input id="chat-input" class="chat-input" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
             <button class="btn btn-chat" style="flex:0; width:50px; background:#007AFF; border-radius:50%; height:45px;" onclick="send()">↑</button>
         </div>
@@ -210,6 +212,45 @@
                 ${!isMe ? `<img src="${m.avatar||'https://cdn-icons-png.flaticon.com/512/847/847969.png'}" class="msg-avatar">` : ''}
                 <div class="msg-bubble">${!isMe ? `<b style="font-size:10px;opacity:0.7">${m.user}</b><br>`:''}${m.text.startsWith('data:audio') ? `<audio controls src="${m.text}"></audio>` : m.text}</div>
             </div>`;
+        }
+        
+        // --- FIXED MIC LOGIC ---
+        let mediaRecorder; let audioChunks = []; let isRecording = false;
+        const micBtn = document.getElementById('mic-btn');
+
+        async function toggleRecord() {
+            if (!isRecording) {
+                // START RECORDING
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    alert("Microphone not supported. Please use Chrome/Safari and ensure HTTPS.");
+                    return;
+                }
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start(); 
+                    audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    
+                    isRecording = true;
+                    micBtn.classList.add('recording');
+                } catch(e) {
+                    alert("Microphone access denied. Please check browser settings.");
+                }
+            } else {
+                // STOP AND SEND
+                if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); }
+                    };
+                }
+                isRecording = false;
+                micBtn.classList.remove('recording');
+            }
         }
 
         async function loadFeed() {
