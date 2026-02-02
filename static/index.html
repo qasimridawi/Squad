@@ -3,97 +3,213 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V18</title>
+    <title>Squad V19</title>
     <link rel="manifest" href="/static/manifest.json">
-    <meta name="theme-color" content="#000000">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0f172a">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        :root { --bg: #000; --card: #121212; --border: #2a2a2a; --accent: #007AFF; --text: #fff; }
-        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding-bottom: 100px; overscroll-behavior: none; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --glass: rgba(20, 20, 20, 0.6);
+            --glass-border: rgba(255, 255, 255, 0.08);
+            --text: #ffffff;
+            --text-muted: #94a3b8;
+            --accent-pink: #ec4899;
+            --accent-blue: #3b82f6;
+            --btn-bg: #000000;
+        }
+
+        body {
+            background-color: #0f172a;
+            /* Loveable AI Style Mesh Gradient */
+            background-image: 
+                radial-gradient(at 0% 0%, hsla(253,16%,7%,1) 0, transparent 50%), 
+                radial-gradient(at 50% 0%, hsla(225,39%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 100% 0%, hsla(339,49%,30%,1) 0, transparent 50%), 
+                radial-gradient(at 0% 100%, hsla(339,89%,50%,0.3) 0, transparent 50%), 
+                radial-gradient(at 100% 100%, hsla(280,100%,70%,0.3) 0, transparent 50%);
+            background-attachment: fixed;
+            background-size: cover;
+            color: var(--text);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            margin: 0;
+            padding-bottom: 100px;
+            overscroll-behavior: none;
+            -webkit-tap-highlight-color: transparent;
+            min-height: 100vh;
+        }
         
-        header { padding: 15px 20px; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(10px); z-index: 1000; display: flex; justify-content: space-between; align-items: center; }
-        h1 { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }
-        #user-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ccc; background: #222; padding: 5px 12px; border-radius: 20px; border: 1px solid #333; }
-        .tiny-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #444; }
-
-        .tab-row { display: flex; border-bottom: 1px solid var(--border); background: var(--bg); position: sticky; top: 55px; z-index: 900; }
-        .tab { flex: 1; text-align: center; padding: 12px; color: #666; font-weight: 600; cursor: pointer; transition: 0.2s; }
-        .tab.active { color: white; border-bottom: 2px solid var(--accent); }
-
-        #map-view { height: calc(100vh - 120px); display: none; }
-        #feed-view { display: block; padding-top: 10px; }
-
-        /* EVENT CARD STYLE */
-        .card { background: var(--card); border: 1px solid var(--border); border-radius: 24px; padding: 16px; margin: 16px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); position: relative; }
+        /* Glass Header */
+        header { 
+            padding: 15px 20px; 
+            border-bottom: 1px solid var(--glass-border); 
+            position: sticky; top: 0; 
+            background: rgba(15, 23, 42, 0.7); 
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            z-index: 1000; 
+            display: flex; justify-content: space-between; align-items: center; 
+        }
+        h1 { margin: 0; font-size: 24px; font-weight: 800; background: linear-gradient(to right, #fff, #cbd5e1); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
         
-        .time-badge { background: #FF3B30; color: white; padding: 5px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; align-self: flex-start; margin-bottom: 5px; display: inline-flex; align-items: center; gap: 5px; }
+        #user-badge { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); background: rgba(0,0,0,0.4); padding: 5px 12px; border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(5px); }
+        .tiny-avatar { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; background: #333; }
+
+        /* Tabs */
+        .tab-row { display: flex; border-bottom: 1px solid var(--glass-border); background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); position: sticky; top: 60px; z-index: 900; }
+        .tab { flex: 1; text-align: center; padding: 14px; color: var(--text-muted); font-weight: 600; cursor: pointer; transition: 0.3s; font-size: 14px; }
+        .tab.active { color: white; border-bottom: 2px solid var(--accent-pink); background: linear-gradient(to top, rgba(236, 72, 153, 0.1), transparent); }
+
+        #map-view { height: calc(100vh - 120px); display: none; filter: grayscale(0.2) contrast(1.1); }
+        #feed-view { display: block; padding-top: 15px; }
+
+        /* Glass Cards */
+        .card { 
+            background: var(--glass); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 24px; 
+            padding: 20px; 
+            margin: 16px; 
+            display: flex; flex-direction: column; gap: 12px; 
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); 
+            backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+            position: relative; 
+            transition: transform 0.2s;
+        }
+        .card:active { transform: scale(0.99); }
+        
+        .time-badge { 
+            background: linear-gradient(135deg, #ec4899, #8b5cf6); 
+            color: white; padding: 6px 12px; border-radius: 12px; 
+            font-size: 12px; font-weight: 700; 
+            align-self: flex-start; margin-bottom: 5px; 
+            box-shadow: 0 4px 12px rgba(236, 72, 153, 0.3);
+        }
         
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
-        .title { font-size: 20px; font-weight: 800; line-height: 1.1; margin-bottom: 5px; }
-        .location { color: #888; font-size: 13px; display: flex; align-items: center; gap: 5px; }
+        .title { font-size: 20px; font-weight: 700; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3); }
+        .location { color: var(--text-muted); font-size: 13px; display: flex; align-items: center; gap: 6px; }
         
         .actions { display: flex; gap: 15px; align-items: center; }
-        .like-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: #555; display: flex; flex-direction: column; align-items: center; padding:0; }
-        .like-btn.liked { color: #FF2D55; transform: scale(1.1); transition: 0.2s; }
+        .like-btn { background: none; border: none; font-size: 20px; cursor: pointer; color: rgba(255,255,255,0.6); display: flex; flex-direction: column; align-items: center; padding:0; transition: 0.2s; }
+        .like-btn.liked { color: #ec4899; transform: scale(1.1); }
+        .delete-btn { background:none; border:none; font-size: 18px; cursor: pointer; opacity: 0.7; }
         
-        .media-content { width: 100%; border-radius: 16px; object-fit: cover; display: none; max-height: 250px; border: 1px solid var(--border); margin-top: 5px; }
+        .media-content { width: 100%; border-radius: 16px; object-fit: cover; display: none; max-height: 250px; border: 1px solid var(--glass-border); margin-top: 5px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .media-content.show { display: block; }
 
-        .attendees-row { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; background: #1c1c1e; padding: 8px 12px; border-radius: 16px; }
+        /* Attendees Glass Pill */
+        .attendees-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-top: 10px; 
+            background: rgba(0, 0, 0, 0.3); 
+            padding: 10px 14px; border-radius: 16px; 
+            border: 1px solid var(--glass-border);
+        }
         .attendees { display: flex; gap: -8px; }
-        .attendee-face { width: 28px; height: 28px; border-radius: 50%; border: 2px solid #1c1c1e; background: #333; object-fit: cover; margin-right: -8px; }
-        .spots-left { font-size: 12px; color: #888; font-weight: 600; margin-left: 10px; }
+        .attendee-face { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #1e293b; background: #333; object-fit: cover; margin-right: -10px; }
+        .spots-left { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-left: 12px; }
 
-        .btn-row { display: flex; gap: 10px; margin-top: 5px; }
-        .btn { flex: 1; padding: 14px; border-radius: 16px; border: none; font-weight: 700; cursor: pointer; font-size: 15px; text-align: center; }
-        .btn-join { background: white; color: black; }
-        .btn-full { background: #333; color: #666; cursor: not-allowed; }
-        .btn-chat { background: #2c2c2e; color: white; }
-
-        /* CHAT & MODALS */
-        #chat-modal { display: none; background: black; z-index: 2000; width:100%; height:100%; position:fixed; top:0; left:0; } 
-        .chat-header { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: rgba(20,20,20,0.95); border-bottom: 1px solid var(--border); }
-        .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 8px; height: calc(100vh - 140px); padding-bottom: 100px; }
-        .chat-footer { padding: 10px 15px; border-top: 1px solid var(--border); display: flex; gap: 10px; align-items: center; background: #111; position: fixed; bottom: 0; width: 100%; box-sizing: border-box; padding-bottom: 20px; }
-
-        .msg-row { display: flex; gap: 8px; align-items: flex-end; max-width: 85%; }
-        .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
-        .msg-avatar { width: 28px; height: 28px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; }
-        .msg-bubble { font-size: 15px; padding: 10px 16px; border-radius: 20px; line-height: 1.4; word-wrap: break-word; color: white; }
-        .msg-row:not(.mine) .msg-bubble { background: #2c2c2e; border-bottom-left-radius: 4px; }
-        .msg-row.mine .msg-bubble { background: linear-gradient(135deg, #007AFF, #0055ff); border-bottom-right-radius: 4px; }
-        .chat-input { flex: 1; background: #1c1c1e; border: 1px solid #333; color: white; padding: 12px 15px; border-radius: 25px; outline: none; font-size: 16px; }
-        .mic-btn { width: 45px; height: 45px; border-radius: 50%; background: #2c2c2e; border: none; color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; -webkit-user-select: none; }
-        .mic-btn.recording { background: #FF3B30; animation: pulse 1s infinite; transform: scale(1.1); box-shadow: 0 0 15px #FF3B30; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 3000; display: flex; justify-content: center; align-items: center; }
-        .modal-box { width: 85%; max-width: 350px; background: #1c1c1e; padding: 30px; border-radius: 30px; border: 1px solid #333; display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
-        .modal-input { padding: 15px; background: #2c2c2e; border: none; color: white; border-radius: 12px; font-size: 16px; width: 100%; box-sizing: border-box; }
-        .file-label { background: #2c2c2e; padding: 15px; border-radius: 12px; text-align: center; color: #aaa; cursor: pointer; border: 1px dashed #444; font-size: 14px; display: block; }
+        /* Buttons */
+        .btn-row { display: flex; gap: 10px; margin-top: 8px; }
+        .btn { 
+            flex: 1; padding: 15px; border-radius: 18px; border: none; 
+            font-weight: 700; cursor: pointer; font-size: 15px; text-align: center; 
+            transition: 0.2s; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        /* Black Button Style */
+        .btn-join { background: #000; color: white; border: 1px solid #333; }
+        .btn-join:active { background: #222; transform: scale(0.97); }
         
-        .inbox-btn { position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px; background: #1c1c1e; border-radius: 50%; border: 1px solid #333; color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.6); }
-        .fab { position: fixed; bottom: 25px; right: 20px; width: 65px; height: 65px; background: linear-gradient(135deg, #007AFF, #00C6FF); border-radius: 50%; border: none; color: white; font-size: 32px; box-shadow: 0 10px 30px rgba(0, 122, 255, 0.4); cursor: pointer; z-index: 100; }
-        #conn-status { font-size: 11px; font-weight: bold; margin-left: 10px; }
-        .green { color: #32D74B; } .red { color: #FF3B30; }
+        .btn-chat { background: rgba(255,255,255,0.1); color: white; border: 1px solid var(--glass-border); backdrop-filter: blur(5px); }
+        .btn-full { background: #222; color: #555; cursor: not-allowed; border: 1px solid #333; }
+
+        /* Chat & Modals */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); backdrop-filter: blur(15px); -webkit-backdrop-filter: blur(15px); z-index: 3000; display: flex; justify-content: center; align-items: center; }
+        .modal-box { 
+            width: 85%; max-width: 350px; 
+            background: rgba(20, 20, 20, 0.85); 
+            padding: 30px; border-radius: 32px; 
+            border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; flex-direction: column; gap: 15px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); 
+        }
+        
+        .modal-input { 
+            padding: 16px; 
+            background: rgba(0,0,0,0.4); 
+            border: 1px solid var(--glass-border); 
+            color: white; border-radius: 16px; 
+            font-size: 16px; width: 100%; box-sizing: border-box; 
+            outline: none; transition: 0.2s;
+        }
+        .modal-input:focus { border-color: var(--accent-pink); background: rgba(0,0,0,0.6); }
+        
+        .file-label { background: rgba(255,255,255,0.05); padding: 15px; border-radius: 16px; text-align: center; color: var(--text-muted); cursor: pointer; border: 1px dashed var(--glass-border); font-size: 14px; display: block; }
+        
+        /* Chat Window */
+        #chat-modal { display: none; background: #0f172a; z-index: 2000; width:100%; height:100%; position:fixed; top:0; left:0; } 
+        .chat-header { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 15px 20px; 
+            background: rgba(15, 23, 42, 0.9); 
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--glass-border); 
+        }
+        .chat-body { 
+            flex: 1; overflow-y: auto; padding: 20px; 
+            display: flex; flex-direction: column; gap: 12px; 
+            height: calc(100vh - 140px); padding-bottom: 100px; 
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
+        }
+        .chat-footer { padding: 12px 15px; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; background: rgba(15, 23, 42, 0.95); position: fixed; bottom: 0; width: 100%; box-sizing: border-box; padding-bottom: 25px; backdrop-filter: blur(10px); }
+
+        .msg-row { display: flex; gap: 10px; align-items: flex-end; max-width: 85%; }
+        .msg-row.mine { align-self: flex-end; flex-direction: row-reverse; }
+        .msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; background: #333; flex-shrink: 0; border: 1px solid var(--glass-border); }
+        .msg-bubble { font-size: 15px; padding: 12px 18px; border-radius: 22px; line-height: 1.4; word-wrap: break-word; color: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .msg-row:not(.mine) .msg-bubble { background: rgba(255,255,255,0.1); border-bottom-left-radius: 4px; border: 1px solid var(--glass-border); }
+        .msg-row.mine .msg-bubble { background: linear-gradient(135deg, #ec4899, #8b5cf6); border-bottom-right-radius: 4px; border: none; }
+        
+        .chat-input { flex: 1; background: rgba(0,0,0,0.5); border: 1px solid var(--glass-border); color: white; padding: 14px 20px; border-radius: 25px; outline: none; font-size: 16px; }
+        
+        .mic-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border); color: white; font-size: 20px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; -webkit-user-select: none; }
+        .mic-btn.recording { background: #ef4444; border-color: #ef4444; box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); animation: pulse 1.5s infinite; }
+        
+        /* Floating Buttons */
+        .inbox-btn { position: fixed; bottom: 100px; right: 20px; width: 55px; height: 55px; background: rgba(20, 20, 20, 0.8); backdrop-filter: blur(10px); border-radius: 50%; border: 1px solid var(--glass-border); color: white; font-size: 24px; cursor: pointer; z-index: 90; display: flex; justify-content: center; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.4); }
+        .fab { 
+            position: fixed; bottom: 25px; right: 20px; 
+            width: 65px; height: 65px; 
+            background: #000; 
+            border-radius: 50%; border: 1px solid #333; 
+            color: white; font-size: 32px; 
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); 
+            cursor: pointer; z-index: 100; 
+            transition: transform 0.2s;
+        }
+        .fab:active { transform: scale(0.9); }
+
+        #conn-status { font-size: 11px; font-weight: bold; margin-left: 10px; padding: 4px 8px; border-radius: 8px; background: rgba(0,0,0,0.3); }
+        .green { color: #4ade80; } .red { color: #f87171; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
 
     <div id="login-modal" class="modal">
         <div class="modal-box">
-            <h1 style="text-align: center; margin: 0;">Squad V18</h1>
-            <p style="text-align: center; color: #666; font-size: 14px;">Moscow Mode</p>
-            <img id="reg-avatar-preview" style="width:70px; height:70px; border-radius:50%; margin:0 auto; display:none; border:2px solid #007AFF;">
-            <label class="file-label">📷 Profile Pic <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)"></label>
+            <h1 style="text-align: center; margin: 0; font-size:28px;">Squad</h1>
+            <p style="text-align: center; color: #94a3b8; font-size: 14px; margin-top:5px;">Find your people.</p>
+            <img id="reg-avatar-preview" style="width:80px; height:80px; border-radius:50%; margin:10px auto; display:none; border:2px solid #ec4899; box-shadow: 0 0 20px rgba(236, 72, 153, 0.3);">
+            <label class="file-label">📷 Upload Photo <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)"></label>
             <input type="text" id="login-user" class="modal-input" placeholder="Username">
             <input type="password" id="login-pass" class="modal-input" placeholder="Password">
-            <div class="btn-row">
+            <div class="btn-row" style="margin-top:10px;">
                 <button class="btn btn-chat" onclick="login()">Login</button>
-                <button class="btn btn-join" style="background:#007AFF; color:white;" onclick="register()">Sign Up</button>
+                <button class="btn btn-join" onclick="register()">Sign Up</button>
             </div>
         </div>
     </div>
@@ -101,7 +217,7 @@
     <div id="chat-modal">
         <div class="chat-header">
             <div style="display:flex; align-items:center;">
-                <button onclick="closeChat()" style="background:none; border:none; color:#007AFF; font-size:24px; margin-right:15px; font-weight:bold;">✕</button>
+                <button onclick="closeChat()" style="background:none; border:none; color:white; font-size:24px; margin-right:15px; opacity:0.8;">✕</button>
                 <div><h2 id="chat-title" style="margin:0; font-size:17px;">Chat</h2><div id="conn-status">Connecting...</div></div>
             </div>
         </div>
@@ -109,7 +225,7 @@
         <div class="chat-footer">
             <button class="mic-btn" id="mic-btn" onclick="toggleRecord()">🎙️</button>
             <input id="chat-input" class="chat-input" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
-            <button class="btn btn-chat" style="flex:0; width:50px; background:#007AFF; border-radius:50%; height:45px;" onclick="send()">↑</button>
+            <button class="btn btn-join" style="flex:0; width:50px; height:50px; border-radius:50%; padding:0; display:flex; align-items:center; justify-content:center;" onclick="send()">↑</button>
         </div>
     </div>
 
@@ -119,13 +235,13 @@
             <input type="text" id="new-title" class="modal-input" placeholder="Activity (e.g. Cinema)">
             <input type="text" id="new-loc" class="modal-input" placeholder="Location">
             <div style="display:flex; gap:10px;">
-                <input type="time" id="new-time" class="modal-input" style="flex:1">
-                <input type="number" id="new-max" class="modal-input" placeholder="Max People" style="flex:1" value="4">
+                <input type="time" id="new-time" class="modal-input" style="flex:1; color-scheme:dark;">
+                <input type="number" id="new-max" class="modal-input" placeholder="Max" style="flex:1" value="4">
             </div>
-            <label class="file-label">📷 Photo (Optional) <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
+            <label class="file-label">📷 Cover Photo (Optional) <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
             <div class="btn-row">
                 <button class="btn btn-chat" onclick="document.getElementById('create-modal').style.display='none'">Cancel</button>
-                <button class="btn btn-join" style="background:#007AFF; color:white;" onclick="submitCreate()">Post</button>
+                <button class="btn btn-join" onclick="submitCreate()">Post</button>
             </div>
         </div>
     </div>
@@ -134,21 +250,36 @@
         <div class="modal-box">
             <div style="display:flex; justify-content:space-between; align-items:center;">
                 <h2 style="margin:0">Inbox</h2>
-                <button onclick="document.getElementById('inbox-modal').style.display='none'" style="background:none; border:none; color:#666; font-size:24px;">✕</button>
+                <button onclick="document.getElementById('inbox-modal').style.display='none'" style="background:none; border:none; color:white; font-size:24px;">✕</button>
             </div>
             <div id="inbox-list"></div>
             <input type="text" id="dm-to" class="modal-input" placeholder="To: Username">
             <input type="text" id="dm-text" class="modal-input" placeholder="Message...">
-            <button class="btn btn-join" style="background:#007AFF; color:white;" onclick="sendDM()">Send</button>
+            <button class="btn btn-join" onclick="sendDM()">Send</button>
         </div>
     </div>
 
-    <header><h1>Squad</h1><div id="user-badge" onclick="logout()"><img id="my-avatar" class="tiny-avatar"><span id="my-name">Guest</span></div></header>
-    <div class="tab-row"><div class="tab active" onclick="switchTab('feed')" id="tab-feed">Feed</div><div class="tab" onclick="switchTab('map')" id="tab-map">Map 🗺️</div></div>
-    <div id="feed-view"></div><div id="map-view"></div>
-    <button class="inbox-btn" onclick="openInbox()">💬</button><button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
+    <header>
+        <h1>Squad</h1>
+        <div id="user-badge" onclick="logout()">
+            <img id="my-avatar" class="tiny-avatar">
+            <span id="my-name">Guest</span>
+        </div>
+    </header>
+    
+    <div class="tab-row">
+        <div class="tab active" onclick="switchTab('feed')" id="tab-feed">Feed</div>
+        <div class="tab" onclick="switchTab('map')" id="tab-map">Map 🗺️</div>
+    </div>
+    
+    <div id="feed-view"></div>
+    <div id="map-view"></div>
+    
+    <button class="inbox-btn" onclick="openInbox()">💬</button>
+    <button class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</button>
 
     <script>
+        // --- SAME LOGIC AS V18 ---
         let token = localStorage.getItem('squad_token');
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
