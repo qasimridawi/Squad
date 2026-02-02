@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V21</title>
+    <title>Squad V22</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0f172a">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -12,15 +12,16 @@
 
     <style>
         :root {
-            --glass: rgba(0, 0, 0, 0.4);
-            --glass-strong: rgba(20, 20, 20, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.08);
+            --glass: rgba(0, 0, 0, 0.3);
+            --glass-strong: rgba(15, 23, 42, 0.8);
+            --glass-border: rgba(255, 255, 255, 0.1);
             --text: #ffffff;
             --accent: #d946ef;
         }
 
         body {
-            background: linear-gradient(180deg, #050b14 0%, #1e1b4b 50%, #831843 100%);
+            /* EXACT REFERENCE GRADIENT */
+            background: linear-gradient(180deg, #0f172a 0%, #312e81 50%, #db2777 100%);
             background-attachment: fixed;
             color: var(--text);
             font-family: 'Plus Jakarta Sans', sans-serif;
@@ -32,15 +33,8 @@
         }
 
         /* --- ANIMATIONS --- */
-        @keyframes slideUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         .animate-enter { animation: slideUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
 
         /* --- HEADER --- */
@@ -48,40 +42,36 @@
             padding: 20px; 
             display: flex; justify-content: space-between; align-items: center; 
             position: sticky; top: 0; z-index: 50;
-            background: linear-gradient(to bottom, rgba(5,11,20,0.8), transparent);
+            background: linear-gradient(to bottom, rgba(15, 23, 42, 0.9), transparent);
         }
-        h1 { margin: 0; font-size: 24px; font-weight: 700; background: linear-gradient(to right, #fff, #f5d0fe); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-
-        #user-badge { display: flex; align-items: center; gap: 10px; padding: 5px 10px; background: rgba(255,255,255,0.05); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
+        h1 { margin: 0; font-size: 24px; font-weight: 700; color: white; letter-spacing: -0.5px; }
+        
+        #user-badge { display: flex; align-items: center; gap: 10px; padding: 5px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
         /* --- CONTENT AREA --- */
-        #content-area { flex: 1; overflow-y: auto; padding-bottom: 120px; }
-        
-        #map-view { height: 100vh; width: 100%; display: none; z-index: 1; position: absolute; top: 0; left: 0; }
+        #content-area { flex: 1; overflow-y: auto; padding-bottom: 100px; }
+        #map-view { height: 100vh; width: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
         #feed-view { display: block; padding: 0 16px; position: relative; z-index: 2; }
 
-        /* --- REAL GLASS CARDS --- */
+        /* --- CARDS --- */
         .card { 
             background: var(--glass); 
             border: 1px solid var(--glass-border); 
             border-radius: 24px; 
             padding: 20px; 
             margin-bottom: 16px; 
-            backdrop-filter: blur(16px) saturate(150%); -webkit-backdrop-filter: blur(16px) saturate(150%);
-            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-            transition: transform 0.2s;
+            backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.2);
         }
-        .card:active { transform: scale(0.98); }
-
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .title { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-        .subtitle { font-size: 13px; color: rgba(255,255,255,0.6); display: flex; align-items: center; gap: 5px; }
+        .subtitle { font-size: 13px; opacity: 0.7; display: flex; align-items: center; gap: 5px; }
         
         .time-badge { 
-            background: linear-gradient(135deg, #d946ef, #a855f7);
-            color: white; padding: 4px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
-            display: inline-block; margin-bottom: 8px; box-shadow: 0 2px 10px rgba(217, 70, 239, 0.3);
+            background: linear-gradient(135deg, #ec4899, #8b5cf6);
+            color: white; padding: 5px 10px; border-radius: 8px; font-size: 11px; font-weight: 700;
+            display: inline-block; margin-bottom: 8px;
         }
 
         .media-content { width: 100%; border-radius: 16px; height: 200px; object-fit: cover; display: none; margin-top: 10px; border: 1px solid var(--glass-border); }
@@ -91,84 +81,85 @@
         .join-btn {
             background: #000; color: white; border: 1px solid #333;
             padding: 10px 24px; border-radius: 99px; font-weight: 600; font-size: 14px;
-            cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            transition: 0.2s;
+            cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: 0.2s;
         }
-        .join-btn:active { background: #222; transform: scale(0.95); }
+        .join-btn:active { transform: scale(0.95); }
 
-        /* --- BOTTOM NAV & FAB --- */
+        /* --- BOTTOM NAV (CLEANED UP) --- */
         .bottom-nav {
             position: fixed; bottom: 0; left: 0; width: 100%;
-            background: rgba(10, 10, 15, 0.8);
+            background: rgba(15, 23, 42, 0.9);
             backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
             border-top: 1px solid var(--glass-border);
-            padding: 10px 30px; padding-bottom: 30px;
+            padding: 15px 30px; padding-bottom: 30px;
             display: flex; justify-content: space-between; align-items: center;
             z-index: 100;
         }
-        .nav-item { background: none; border: none; font-size: 22px; opacity: 0.5; transition: 0.2s; cursor: pointer; }
-        .nav-item.active { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 5px white); }
+        .nav-item { background: none; border: none; font-size: 24px; opacity: 0.4; transition: 0.2s; cursor: pointer; }
+        .nav-item.active { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(255,255,255,0.4)); }
 
-        /* CENTERED FLOATING BUTTON */
-        .fab-container {
-            position: absolute; left: 50%; top: -25px; transform: translateX(-50%);
-            background: #0f172a; padding: 5px; border-radius: 50%; /* Cutout effect */
-        }
+        /* --- FLOATING PLUS BUTTON (Bottom Right) --- */
         .fab {
-            width: 55px; height: 55px;
-            background: linear-gradient(135deg, #d946ef, #000); /* Aesthetic gradient */
+            position: fixed; bottom: 95px; right: 20px;
+            width: 56px; height: 56px;
+            background: linear-gradient(135deg, #000, #333);
+            border: 1px solid rgba(255,255,255,0.2);
             border-radius: 50%; color: white; font-size: 28px;
             display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 8px 20px rgba(217, 70, 239, 0.4);
-            cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
-            transition: transform 0.2s;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.5);
+            cursor: pointer; z-index: 101; transition: transform 0.2s;
         }
-        .fab:active { transform: scale(0.9) rotate(90deg); }
+        .fab:active { transform: scale(0.9); }
 
-        /* --- MODALS --- */
-        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 2000; display: flex; justify-content: center; align-items: center; animation: fadeIn 0.3s; }
-        
-        .modal-card {
-            width: 85%; max-width: 340px;
-            background: var(--glass-strong);
-            border: 1px solid var(--glass-border);
-            border-radius: 32px; padding: 30px;
-            display: flex; flex-direction: column; gap: 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            animation: slideUp 0.3s;
-        }
-
-        .input-field {
-            background: rgba(255, 255, 255, 0.05);
-            border: 1px solid var(--glass-border);
-            color: white; padding: 16px; border-radius: 16px;
-            font-size: 15px; outline: none; width: 100%; box-sizing: border-box;
-            transition: 0.2s;
-        }
-        .input-field:focus { background: rgba(255, 255, 255, 0.1); border-color: var(--accent); }
-
-        .black-btn { background: #000; color: white; padding: 16px; border-radius: 99px; border: 1px solid #333; font-weight: 600; width: 100%; margin-top: 10px; cursor: pointer; }
-
-        /* --- CHAT --- */
+        /* --- CHAT SCREEN & MIC --- */
         #chat-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(180deg, #050b14 0%, #1e1b4b 100%);
+            background: linear-gradient(180deg, #0f172a 0%, #312e81 100%);
             z-index: 3000; display: none; flex-direction: column;
         }
-        .chat-nav { padding: 20px; display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.3); backdrop-filter: blur(10px); }
+        .chat-nav { padding: 20px; display: flex; align-items: center; gap: 15px; background: rgba(0,0,0,0.2); backdrop-filter: blur(10px); }
+        .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; }
+        
+        .chat-bar {
+            padding: 15px 20px; padding-bottom: 30px;
+            background: rgba(15, 23, 42, 0.95);
+            border-top: 1px solid var(--glass-border);
+            display: flex; gap: 10px; align-items: center;
+        }
+        .input-box {
+            flex: 1; background: rgba(255,255,255,0.1); border: 1px solid var(--glass-border);
+            color: white; padding: 12px 20px; border-radius: 99px; outline: none; font-size: 16px;
+        }
+        
+        /* THE MISSING MIC BUTTON */
+        .icon-btn {
+            width: 44px; height: 44px; border-radius: 50%;
+            background: rgba(255,255,255,0.1); border: none;
+            color: white; font-size: 20px; display: flex; justify-content: center; align-items: center;
+            cursor: pointer; transition: 0.2s;
+        }
+        .icon-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
+        .icon-btn.send { background: #d946ef; color: white; }
+
         .bubble { padding: 12px 18px; border-radius: 20px; max-width: 80%; font-size: 15px; margin-bottom: 8px; animation: slideUp 0.3s; }
         .bubble.them { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
-        .bubble.me { background: linear-gradient(135deg, #d946ef, #a855f7); align-self: flex-end; border-bottom-right-radius: 4px; box-shadow: 0 4px 15px rgba(217, 70, 239, 0.3); }
+        .bubble.me { background: linear-gradient(135deg, #d946ef, #a855f7); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        /* Image Upload Label */
-        .file-label {
-            display: block; text-align: center; padding: 15px;
-            border: 1px dashed rgba(255,255,255,0.2); border-radius: 16px;
-            color: rgba(255,255,255,0.6); font-size: 14px; cursor: pointer;
+        /* --- MODALS --- */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(10px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
+        .modal-card {
+            width: 85%; max-width: 340px; background: rgba(20,20,30,0.9);
+            border: 1px solid var(--glass-border); border-radius: 32px; padding: 30px;
+            display: flex; flex-direction: column; gap: 15px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
         }
-
+        .input-field { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 16px; border-radius: 16px; width: 100%; box-sizing: border-box; font-size: 15px; outline:none;}
+        .black-btn { background: #000; color: white; padding: 16px; border-radius: 99px; border: 1px solid #333; font-weight: 600; width: 100%; cursor: pointer; }
+        
+        .file-label { display:block; text-align:center; padding:15px; border:1px dashed rgba(255,255,255,0.2); border-radius:16px; color:rgba(255,255,255,0.6); cursor:pointer; }
         .attendees-row { display: flex; align-items: center; margin-top: 10px; }
         .attendee-face { width: 30px; height: 30px; border-radius: 50%; border: 2px solid #1e1e24; background: #333; object-fit: cover; margin-right: -10px; }
+        
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -177,16 +168,13 @@
         <div class="modal-card">
             <h2 style="text-align: center; margin: 0; font-size: 26px;">Squad</h2>
             <p style="text-align: center; opacity: 0.6; font-size: 14px;">Log in to continue</p>
-            
             <label style="cursor:pointer; text-align:center;">
                 <input type="file" id="hero-avatar" style="display: none;" accept="image/*" onchange="previewAvatar(this)">
                 <img id="reg-avatar-preview" style="width:80px; height:80px; border-radius:50%; object-fit:cover; display:none; margin:0 auto; border:2px solid #d946ef;">
                 <div id="avatar-placeholder" style="width:80px; height:80px; border-radius:50%; background:rgba(255,255,255,0.1); margin:0 auto; display:flex; justify-content:center; align-items:center; font-size:24px;">📷</div>
             </label>
-
             <input type="text" id="login-user" class="input-field" placeholder="Username">
             <input type="password" id="login-pass" class="input-field" placeholder="Password">
-            
             <button class="black-btn" onclick="login()">Enter Squad</button>
             <div style="text-align: center; opacity: 0.5; font-size: 13px; margin-top: 10px;" onclick="register()">New here? Create account</div>
         </div>
@@ -201,20 +189,19 @@
                 <input type="time" id="new-time" class="input-field" style="color-scheme:dark;">
                 <input type="number" id="new-max" class="input-field" placeholder="Max" value="4">
             </div>
-            <label class="file-label">
-                📷 Add Cover Photo
-                <input type="file" id="new-img" style="display: none;" accept="image/*">
-            </label>
+            <label class="file-label">📷 Add Cover Photo <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
             <button class="black-btn" onclick="submitCreate()">Post</button>
         </div>
     </div>
 
     <div id="chat-screen">
         <div class="chat-nav"><button onclick="closeChat()" style="background:none;border:none;color:white;font-size:24px;">←</button><h3 id="chat-title" style="margin:0">Chat</h3></div>
-        <div id="chat-body" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column;"></div>
-        <div style="padding:20px; background:rgba(0,0,0,0.5); display:flex; gap:10px;">
-            <input id="chat-input" class="input-field" placeholder="Message..." style="border-radius:99px;" onkeypress="if(event.key==='Enter') send()">
-            <button onclick="send()" style="background:#d946ef; width:50px; border-radius:50%; border:none; cursor:pointer;">🚀</button>
+        <div id="chat-body" class="chat-body"></div>
+        
+        <div class="chat-bar">
+            <button class="icon-btn" id="mic-btn" onclick="toggleRecord()">🎙️</button>
+            <input id="chat-input" class="input-box" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
+            <button class="icon-btn send" onclick="send()">🚀</button>
         </div>
     </div>
 
@@ -225,14 +212,11 @@
         <div id="map-view"></div>
     </div>
 
+    <div class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</div>
+
     <div class="bottom-nav">
         <button class="nav-item active" onclick="switchTab('feed')" id="nav-feed">🏠</button>
         <button class="nav-item" onclick="switchTab('inbox')">💬</button>
-        
-        <div class="fab-container">
-            <div class="fab" onclick="document.getElementById('create-modal').style.display='flex'">+</div>
-        </div>
-        
         <button class="nav-item" onclick="switchTab('map')" id="nav-map">🗺️</button>
         <button class="nav-item" onclick="alert('Profile')">👤</button>
     </div>
@@ -257,14 +241,7 @@
             
             document.getElementById('feed-view').style.display = tab === 'feed' ? 'block' : 'none';
             document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
-            
-            // MAP FIX: Invalidating size ensures it renders correctly
-            if(tab === 'map') {
-                setTimeout(() => {
-                    if(!map) initMap();
-                    else map.invalidateSize();
-                }, 100);
-            }
+            if(tab === 'map') { setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 100); }
         }
 
         function initMap() {
@@ -299,7 +276,7 @@
 
                 const card = document.createElement('div');
                 card.className = 'card animate-enter';
-                card.style.animationDelay = `${index * 0.1}s`; // Staggered Animation
+                card.style.animationDelay = `${index * 0.1}s`;
                 card.innerHTML = `
                     <div class="card-header">
                         <div>
@@ -325,7 +302,8 @@
             document.getElementById('chat-screen').style.display = 'flex';
             document.getElementById('chat-title').innerText = title;
             document.getElementById('chat-body').innerHTML = '';
-            document.querySelector('.bottom-nav').style.display = 'none';
+            document.querySelector('.bottom-nav').style.display = 'none'; // Hide nav
+            document.querySelector('.fab').style.display = 'none'; // Hide FAB
 
             const res = await fetch(`/chat_history/${id}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
@@ -342,13 +320,14 @@
         function closeChat() { 
             document.getElementById('chat-screen').style.display = 'none'; 
             document.querySelector('.bottom-nav').style.display = 'flex'; 
+            document.querySelector('.fab').style.display = 'flex';
             if(currentSocket) currentSocket.close(); 
         }
         function renderMsg(m) {
             const isMe = m.user === currentUser;
             return `<div class="bubble ${isMe ? 'me' : 'them'}">
                 ${!isMe ? `<div style="font-size:10px;opacity:0.6">${m.user}</div>` : ''}
-                ${m.text}
+                ${m.text.startsWith('data:audio') ? `<audio controls src="${m.text}"></audio>` : m.text}
             </div>`;
         }
         function send() { const i = document.getElementById('chat-input'); if(i.value && currentSocket) { currentSocket.send(i.value); i.value = ''; } }
@@ -367,6 +346,31 @@
         }
         async function del(id) { if(confirm("Delete?")) await fetch(`/delete_hangout/${id}`, {method:'DELETE', headers:{'Authorization':`Bearer ${token}`}}); loadFeed(); }
         function logout() { localStorage.clear(); location.reload(); }
+        
+        let mediaRecorder; let audioChunks = []; let isRecording = false; const micBtn = document.getElementById('mic-btn');
+        async function toggleRecord() {
+            if (!isRecording) {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert("Mic not supported."); return; }
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    mediaRecorder.start(); audioChunks = [];
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    isRecording = true; micBtn.classList.add('recording');
+                } catch(e) { alert("Mic denied."); }
+            } else {
+                if(mediaRecorder && mediaRecorder.state !== 'inactive') {
+                    mediaRecorder.stop();
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(blob);
+                        reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); }
+                    };
+                }
+                isRecording = false; micBtn.classList.remove('recording');
+            }
+        }
         let selectedFileGlobal = null;
     </script>
 </body>
