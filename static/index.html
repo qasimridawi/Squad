@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V31</title>
+    <title>Squad V32</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -26,18 +26,9 @@
         #user-badge { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); cursor: pointer; }
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
-        /* CUSTOM GLOWING MAP PINS */
-        .glowing-pin {
-            background: #ec4899;
-            width: 20px; height: 20px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899;
-            animation: pulsePin 2s infinite;
-        }
+        /* PINS */
+        .glowing-pin { background: #ec4899; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899; animation: pulsePin 2s infinite; }
         @keyframes pulsePin { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
-
-        /* ADMIN BADGE */
         .admin-badge { color: #3b82f6; display: inline-flex; margin-left: 4px; font-size: 14px; }
 
         #content-area { flex: 1; overflow-y: auto; padding-bottom: 140px; }
@@ -55,16 +46,24 @@
         .media-content.show { display: block; }
         .join-btn { background: #000; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 28px; border-radius: 99px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
         
-        /* INBOX TABS */
         .inbox-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .inbox-tab { flex: 1; text-align: center; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); color: #888; font-weight: 600; cursor: pointer; }
         .inbox-tab.active { background: #ec4899; color: white; box-shadow: 0 5px 20px rgba(236, 72, 153, 0.4); }
-        
         .inbox-item { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid var(--glass-border); cursor: pointer; }
+        .inbox-item:active { background: rgba(255,255,255,0.1); }
         .inbox-icon { width: 50px; height: 50px; border-radius: 15px; background: linear-gradient(135deg, #ec4899, #7c3aed); display: flex; justify-content: center; align-items: center; font-size: 24px; }
         .inbox-info { flex: 1; }
         .inbox-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; }
         .inbox-meta { font-size: 13px; opacity: 0.6; }
+
+        .profile-header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ec4899; box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
+        .profile-name { font-size: 26px; font-weight: 800; }
+        .profile-section { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .section-label { font-size: 12px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .bio-text { font-size: 15px; line-height: 1.5; color: rgba(255,255,255,0.9); }
+        .insta-btn { display: flex; align-items: center; gap: 10px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 12px 20px; border-radius: 16px; color: white; font-weight: 600; text-decoration: none; width: fit-content; margin-top: 10px; }
+        .edit-input { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; color: white; width: 100%; font-family: inherit; margin-bottom: 10px; }
 
         .dock-container { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 100; pointer-events: none; }
         .glass-dock { pointer-events: auto; background: rgba(20, 20, 20, 0.65); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 35px; padding: 10px 25px; display: flex; gap: 25px; align-items: center; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
@@ -91,10 +90,7 @@
         .file-label { display:block; text-align:center; padding:15px; border:1px dashed rgba(255,255,255,0.2); border-radius:16px; color:rgba(255,255,255,0.5); cursor:pointer; font-size: 14px; }
         .attendees-row { display: flex; align-items: center; margin-top: 10px; }
         .attendee-face { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #111; background: #333; object-fit: cover; margin-right: -10px; }
-        .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ec4899; }
-        .profile-name { font-size: 26px; font-weight: 800; }
-        .profile-section { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
-        .edit-input { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; color: white; width: 100%; font-family: inherit; margin-bottom: 10px; }
+        @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
@@ -164,8 +160,25 @@
         let currentAvatar = localStorage.getItem('squad_avatar');
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let map = null; let markers = []; let currentSocket = null; let activeDM = null;
+        let personalSocket = null;
 
-        if (!token) document.getElementById('login-modal').style.display = 'flex'; else { updateBadge(); loadFeed(); }
+        if (!token) document.getElementById('login-modal').style.display = 'flex'; 
+        else { updateBadge(); loadFeed(); initPersonalSocket(); }
+
+        function initPersonalSocket() {
+            if (personalSocket) return;
+            const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+            personalSocket = new WebSocket(`${proto}://${location.host}/ws/me?token=${token}`);
+            personalSocket.onmessage = (e) => {
+                const msg = JSON.parse(e.data);
+                if (msg.type === "dm" && activeDM === msg.sender) {
+                    renderMsg({user: msg.sender, text: msg.text});
+                } else if (msg.type === "dm") {
+                    // Could add a notification dot here
+                    // document.getElementById('nav-inbox').style.color = '#ec4899';
+                }
+            };
+        }
 
         function updateBadge() { document.getElementById('my-name').innerText = currentUser; document.getElementById('my-avatar').src = currentAvatar || ''; }
 
@@ -256,7 +269,6 @@
             });
         }
 
-        // CHAT LOGIC (Unified for Plans and DMs)
         async function openChat(id, title) {
             activeDM = null;
             setupChatUI(title);
@@ -274,7 +286,7 @@
             setupChatUI(partner);
             const res = await fetch(`/dm_history/${partner}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
-            msgs.forEach(m => renderMsg({user: m.sender, text: m.text})); // Simple render for DMs
+            msgs.forEach(m => renderMsg({user: m.sender, text: m.text})); 
         }
 
         function setupChatUI(title) {
@@ -301,11 +313,11 @@
             document.getElementById('chat-input').value = '';
         }
 
-        function closeChat() { document.getElementById('chat-screen').style.display = 'none'; document.querySelector('.dock-container').style.display = 'flex'; if(currentSocket) currentSocket.close(); }
+        function closeChat() { document.getElementById('chat-screen').style.display = 'none'; document.querySelector('.dock-container').style.display = 'flex'; if(currentSocket) currentSocket.close(); activeDM = null; }
         function resizeImage(file, w, h) { return new Promise((resolve) => { if(!file) resolve(null); const img = new Image(); img.src = URL.createObjectURL(file); img.onload = () => { const cvs = document.createElement('canvas'); let scale = Math.max(w/img.width, h/img.height); cvs.width = w; cvs.height = h; cvs.getContext('2d').drawImage(img, 0,0, img.width*scale, img.height*scale); resolve(cvs.toDataURL('image/jpeg', 0.7)); }; }); }
         async function previewAvatar(i) { selectedFileGlobal = i.files[0]; const r = await resizeImage(selectedFileGlobal, 200, 200); document.getElementById('reg-avatar-preview').src = r; document.getElementById('reg-avatar-preview').style.display = 'block'; document.getElementById('avatar-placeholder').style.display='none'; }
         async function register() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; let av = selectedFileGlobal ? await resizeImage(selectedFileGlobal, 150, 150) : null; const res = await fetch('/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p, avatar_data:av}) }); if(res.ok) alert("Registered!"); else alert("Taken"); }
-        async function login() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; const res = await fetch('/token', { method: 'POST', body: new URLSearchParams({username:u, password:p}) }); const d = await res.json(); if(res.ok) { token = d.access_token; currentUser = d.username; currentAvatar = d.avatar; isAdmin = d.is_admin; localStorage.setItem('squad_token', token); localStorage.setItem('squad_user', currentUser); localStorage.setItem('squad_avatar', currentAvatar||''); localStorage.setItem('squad_admin', isAdmin); document.getElementById('login-modal').style.display='none'; updateBadge(); loadFeed(); } else alert("Fail"); }
+        async function login() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; const res = await fetch('/token', { method: 'POST', body: new URLSearchParams({username:u, password:p}) }); const d = await res.json(); if(res.ok) { token = d.access_token; currentUser = d.username; currentAvatar = d.avatar; isAdmin = d.is_admin; localStorage.setItem('squad_token', token); localStorage.setItem('squad_user', currentUser); localStorage.setItem('squad_avatar', currentAvatar||''); localStorage.setItem('squad_admin', isAdmin); document.getElementById('login-modal').style.display='none'; updateBadge(); loadFeed(); initPersonalSocket(); } else alert("Fail"); }
         async function submitCreate() { let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; let tm = document.getElementById('new-time').value || "Now"; let mx = document.getElementById('new-max').value || 4; let f = document.getElementById('new-img').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; if(!t) return alert("Title needed"); await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, event_time:tm, max_people:parseInt(mx), image_data:img}) }); document.getElementById('create-modal').style.display='none'; loadFeed(); }
         function logout() { localStorage.clear(); location.reload(); }
         let mediaRecorder; let audioChunks = []; let isRecording = false; const micBtn = document.getElementById('mic-btn');
