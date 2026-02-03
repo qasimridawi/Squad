@@ -3,3 +3,5 @@ uvicorn
 pyjwt
 python-multipart
 websockets
+aiofiles
+pydantic
