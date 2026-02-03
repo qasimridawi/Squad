@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V27</title>
+    <title>Squad V28</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -11,133 +11,54 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <style>
-        :root {
-            --glass-bg: rgba(255, 255, 255, 0.08);
-            --glass-border: rgba(255, 255, 255, 0.15);
-            --text: #ffffff;
-            --accent: #ec4899;
-        }
-
+        :root { --glass-bg: rgba(255, 255, 255, 0.08); --glass-border: rgba(255, 255, 255, 0.15); --text: #ffffff; --accent: #ec4899; }
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-
         body {
             background-color: #020617;
-            /* LOVEABLE MESH GRADIENT */
-            background-image: 
-                radial-gradient(at 10% 10%, #0f172a 0%, transparent 70%),
-                radial-gradient(at 90% 100%, #db2777 0%, transparent 60%),
-                radial-gradient(at 0% 100%, #7c3aed 0%, transparent 60%);
-            background-attachment: fixed;
-            background-size: cover;
-            color: var(--text);
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            margin: 0; padding: 0;
-            overscroll-behavior: none;
-            min-height: 100vh;
-            display: flex; flex-direction: column;
+            background-image: radial-gradient(at 10% 10%, #0f172a 0%, transparent 70%), radial-gradient(at 90% 100%, #db2777 0%, transparent 60%), radial-gradient(at 0% 100%, #7c3aed 0%, transparent 60%);
+            background-attachment: fixed; background-size: cover; color: var(--text); font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; overscroll-behavior: none; min-height: 100vh; display: flex; flex-direction: column;
         }
-
-        /* --- ANIMATIONS --- */
         @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
         .animate { animation: slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-        /* --- HEADER --- */
-        header { 
-            padding: 15px 24px; 
-            display: flex; justify-content: space-between; align-items: center; 
-            position: sticky; top: 0; z-index: 50;
-            background: rgba(0,0,0,0.2); backdrop-filter: blur(5px);
-        }
+        
+        header { padding: 15px 24px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 50; background: rgba(0,0,0,0.2); backdrop-filter: blur(5px); }
         h1 { margin: 0; font-size: 24px; font-weight: 800; letter-spacing: -0.5px; }
-
-        #user-badge { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); }
+        #user-badge { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); cursor: pointer; }
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
-        /* --- CONTENT --- */
         #content-area { flex: 1; overflow-y: auto; padding-bottom: 140px; }
         #map-view { height: 100vh; width: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
         #feed-view { display: block; padding: 20px; position: relative; z-index: 2; }
+        #profile-view { display: none; padding: 20px; z-index: 2; }
 
-        /* --- CARDS --- */
-        .card { 
-            background: rgba(0, 0, 0, 0.3); 
-            border: 1px solid var(--glass-border); 
-            border-radius: 28px; 
-            padding: 24px; 
-            margin-bottom: 20px; 
-            backdrop-filter: blur(25px); -webkit-backdrop-filter: blur(25px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            transition: transform 0.2s;
-        }
+        .card { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 28px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(25px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
         .card:active { transform: scale(0.98); }
-
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
         .title { font-size: 22px; font-weight: 700; margin-bottom: 6px; line-height: 1.1; }
         .subtitle { font-size: 14px; opacity: 0.6; display: flex; align-items: center; gap: 6px; }
-        
-        .time-badge { 
-            background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1);
-            color: #fce7f3; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;
-            display: inline-block; margin-bottom: 12px;
-        }
-
+        .time-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1); color: #fce7f3; padding: 6px 12px; border-radius: 12px; font-size: 12px; font-weight: 600; display: inline-block; margin-bottom: 12px; }
         .media-content { width: 100%; border-radius: 20px; height: 220px; object-fit: cover; display: none; margin-top: 15px; border: 1px solid var(--glass-border); }
         .media-content.show { display: block; }
-
-        .join-btn {
-            background: #000; color: white; border: 1px solid rgba(255,255,255,0.2);
-            padding: 12px 28px; border-radius: 99px; font-weight: 600; font-size: 14px;
-            cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
-        }
-        .join-btn:active { transform: scale(0.95); background: #111; }
-
-        /* --- DOCK & FAB --- */
-        .dock-container {
-            position: fixed; bottom: 30px; left: 0; width: 100%;
-            display: flex; justify-content: center; z-index: 100;
-            pointer-events: none;
-        }
+        .join-btn { background: #000; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 28px; border-radius: 99px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
         
-        .glass-dock {
-            pointer-events: auto;
-            background: rgba(20, 20, 20, 0.65);
-            backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 35px;
-            padding: 10px 25px;
-            display: flex; gap: 25px; align-items: center;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-        }
+        /* PROFILE STYLES */
+        .profile-header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ec4899; box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
+        .profile-name { font-size: 26px; font-weight: 800; }
+        .profile-section { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); border-radius: 20px; padding: 20px; margin-bottom: 15px; }
+        .section-label { font-size: 12px; color: #ec4899; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+        .bio-text { font-size: 15px; line-height: 1.5; color: rgba(255,255,255,0.9); }
+        .insta-btn { display: flex; align-items: center; gap: 10px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 12px 20px; border-radius: 16px; color: white; font-weight: 600; text-decoration: none; width: fit-content; margin-top: 10px; }
+        .edit-input { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; color: white; width: 100%; font-family: inherit; margin-bottom: 10px; }
 
-        .dock-icon {
-            width: 50px; height: 50px;
-            border-radius: 16px;
-            display: flex; justify-content: center; align-items: center;
-            font-size: 26px; cursor: pointer; transition: 0.2s;
-            background: rgba(255,255,255,0.05);
-        }
+        .dock-container { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 100; pointer-events: none; }
+        .glass-dock { pointer-events: auto; background: rgba(20, 20, 20, 0.65); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 35px; padding: 10px 25px; display: flex; gap: 25px; align-items: center; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
+        .dock-icon { width: 50px; height: 50px; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 26px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.05); }
         .dock-icon.active { background: rgba(255,255,255,0.15); box-shadow: 0 0 15px rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); }
-        .dock-icon:active { transform: scale(0.9); }
-        
-        /* FAB FIX: USING SVG FOR PERFECT CENTERING */
-        .fab {
-            position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%);
-            width: 60px; height: 60px;
-            background: #000; border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 50%; color: white;
-            display: flex; justify-content: center; align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
-            cursor: pointer; pointer-events: auto;
-            z-index: 102;
-        }
-        /* SVG Icon size */
+        .fab { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.6); cursor: pointer; pointer-events: auto; z-index: 102; }
         .fab svg { width: 32px; height: 32px; }
 
-        /* --- CHAT --- */
-        #chat-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #000; z-index: 3000; display: none; flex-direction: column;
-        }
+        #chat-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; display: none; flex-direction: column; }
         .chat-nav { padding: 20px; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); }
         .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); }
         .chat-bar { padding: 15px 20px; padding-bottom: 35px; background: #000; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
@@ -148,16 +69,13 @@
         .bubble.them { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
         .bubble.me { background: linear-gradient(135deg, #ec4899, #8b5cf6); align-self: flex-end; border-bottom-right-radius: 4px; }
 
-        /* --- MODALS --- */
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
         .modal-card { width: 85%; max-width: 360px; background: #0a0a0a; border: 1px solid var(--glass-border); border-radius: 36px; padding: 36px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px rgba(0,0,0,0.9); }
         .input-field { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 18px; border-radius: 18px; width: 100%; box-sizing: border-box; font-size: 16px; outline:none; }
         .black-btn { background: #000; color: white; padding: 18px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600; width: 100%; cursor: pointer; font-size: 16px; }
-
         .file-label { display:block; text-align:center; padding:15px; border:1px dashed rgba(255,255,255,0.2); border-radius:16px; color:rgba(255,255,255,0.5); cursor:pointer; font-size: 14px; }
         .attendees-row { display: flex; align-items: center; margin-top: 10px; }
         .attendee-face { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #111; background: #333; object-fit: cover; margin-right: -10px; }
-
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
@@ -203,23 +121,23 @@
         </div>
     </div>
 
-    <header><h1>Squad</h1><div id="user-badge" onclick="logout()"><span id="my-name">Guest</span><img id="my-avatar" class="tiny-avatar"></div></header>
+    <header><h1>Squad</h1><div id="user-badge" onclick="loadProfile(currentUser)"><span id="my-name">Guest</span><img id="my-avatar" class="tiny-avatar"></div></header>
 
     <div id="content-area">
         <div id="feed-view"></div>
         <div id="map-view"></div>
+        <div id="profile-view"></div>
     </div>
 
     <div class="dock-container">
         <div class="fab" onclick="document.getElementById('create-modal').style.display='flex'">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
         </div>
-
         <div class="glass-dock">
             <div class="dock-icon active" onclick="switchTab('feed')" id="nav-feed">🏠</div>
             <div class="dock-icon" onclick="switchTab('inbox')">💬</div>
             <div class="dock-icon" onclick="switchTab('map')" id="nav-map">🗺️</div>
-            <div class="dock-icon" onclick="alert('Profile')">👤</div>
+            <div class="dock-icon" onclick="loadProfile(currentUser)" id="nav-profile">👤</div>
         </div>
     </div>
 
@@ -227,7 +145,8 @@
         let token = localStorage.getItem('squad_token');
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
-        let isAdmin = localStorage.getItem('squad_admin') === 'true';
+        let currentBio = localStorage.getItem('squad_bio') || "";
+        let currentInsta = localStorage.getItem('squad_insta') || "";
         let map = null;
         let markers = [];
         let currentSocket = null; 
@@ -240,29 +159,67 @@
             document.querySelectorAll('.dock-icon').forEach(t => t.classList.remove('active'));
             if(tab === 'feed') document.getElementById('nav-feed').classList.add('active');
             if(tab === 'map') document.getElementById('nav-map').classList.add('active');
+            if(tab === 'profile') document.getElementById('nav-profile').classList.add('active');
             
             document.getElementById('feed-view').style.display = tab === 'feed' ? 'block' : 'none';
             document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
+            document.getElementById('profile-view').style.display = tab === 'profile' ? 'block' : 'none';
+            
             if(tab === 'map') { setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 100); }
         }
 
-        function initMap() {
-            map = L.map('map-view').setView([55.7558, 37.6173], 10);
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map);
-            loadMapMarkers();
+        async function loadProfile(username) {
+            switchTab('profile');
+            const div = document.getElementById('profile-view');
+            div.innerHTML = '<div style="text-align:center; margin-top:50px;">Loading...</div>';
+
+            const res = await fetch(`/get_user/${username}`, { headers: {'Authorization': `Bearer ${token}`} });
+            if(!res.ok) return;
+            const u = await res.json();
+            const isMe = (username === currentUser);
+
+            div.innerHTML = `
+                <div class="profile-header animate">
+                    <img src="${u.avatar||'https://via.placeholder.com/100'}" class="profile-pic-lg">
+                    <div class="profile-name">${u.username}</div>
+                    ${u.instagram ? `<a href="https://instagram.com/${u.instagram.replace('@','')}" target="_blank" class="insta-btn">📸 Instagram</a>` : ''}
+                </div>
+                
+                <div class="profile-section animate" style="animation-delay: 0.1s;">
+                    <div class="section-label">About</div>
+                    ${isMe ? `<textarea id="edit-bio" class="edit-input" rows="3" placeholder="Write a short bio...">${u.bio||''}</textarea>` : `<div class="bio-text">${u.bio || "No bio yet."}</div>`}
+                </div>
+
+                ${isMe ? `
+                <div class="profile-section animate" style="animation-delay: 0.2s;">
+                    <div class="section-label">Socials</div>
+                    <input id="edit-insta" type="text" class="edit-input" placeholder="Instagram Username (e.g. @qasim)" value="${u.instagram||''}">
+                </div>
+                <button class="black-btn animate" style="animation-delay: 0.3s;" onclick="saveProfile()">Save Profile</button>
+                <div style="text-align:center; margin-top:20px; color:#ef4444; opacity:0.7; font-size:14px; cursor:pointer;" onclick="logout()">Log Out</div>
+                ` : ''}
+            `;
         }
 
+        async function saveProfile() {
+            const b = document.getElementById('edit-bio').value;
+            const i = document.getElementById('edit-insta').value;
+            await fetch('/update_profile', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
+                body: JSON.stringify({bio: b, instagram: i})
+            });
+            alert("Saved!");
+        }
+
+        function initMap() { map = L.map('map-view').setView([55.7558, 37.6173], 10); L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png').addTo(map); loadMapMarkers(); }
         async function loadMapMarkers() {
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
             const data = await res.json();
             markers.forEach(m => map.removeLayer(m)); markers = [];
-            data.feed.forEach(h => {
-                const m = L.marker([55.7558 + (Math.random()-0.5)*0.1, 37.6173 + (Math.random()-0.5)*0.1]).addTo(map).bindPopup(`<b>${h.title}</b><br>⏰ ${h.event_time}`);
-                markers.push(m);
-            });
+            data.feed.forEach(h => { markers.push(L.marker([55.7558 + (Math.random()-0.5)*0.1, 37.6173 + (Math.random()-0.5)*0.1]).addTo(map).bindPopup(`<b>${h.title}</b><br>⏰ ${h.event_time}`)); });
         }
-
         async function loadFeed() {
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
@@ -274,26 +231,18 @@
                 const isHost = h.host === currentUser;
                 const canDelete = isHost || isAdmin;
                 let faces = '';
-                h.attendees.forEach(a => { faces += `<img src="${a.avatar||''}" class="attendee-face">`; });
+                h.attendees.forEach(a => { faces += `<img src="${a.avatar||''}" class="attendee-face" onclick="loadProfile('${a.username}')">`; }); // Added OnClick
 
                 const card = document.createElement('div');
-                card.className = 'card animate';
-                card.style.animationDelay = `${index * 0.1}s`;
+                card.className = 'card animate'; card.style.animationDelay = `${index * 0.1}s`;
                 card.innerHTML = `
                     <div class="card-header">
-                        <div>
-                            <div class="time-badge">Today, ${h.event_time}</div>
-                            <div class="title">${h.title}</div>
-                            <div class="subtitle">📍 ${h.location}</div>
-                        </div>
+                        <div><div class="time-badge">Today, ${h.event_time}</div><div class="title">${h.title}</div><div class="subtitle">📍 ${h.location}</div></div>
                         ${canDelete ? `<button onclick="del(${h.id})" style="background:none;border:none;color:white;font-size:18px;">✕</button>` : ''}
                     </div>
                     ${h.image_data ? `<img src="${h.image_data}" class="media-content show">` : ''}
                     <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-top:15px;">
-                        <div>
-                            <div class="attendees-row" style="padding-left:10px;">${faces}</div>
-                            <div style="font-size:12px; opacity:0.6; margin-left:10px; margin-top:5px;">${h.count}/${h.max_people} joined</div>
-                        </div>
+                        <div><div class="attendees-row" style="padding-left:10px;">${faces}</div><div style="font-size:12px; opacity:0.6; margin-left:10px; margin-top:5px;">${h.count}/${h.max_people} joined</div></div>
                         <button class="join-btn" onclick="openChat(${h.id}, '${h.title}')">Join</button>
                     </div>`;
                 div.appendChild(card);
@@ -301,76 +250,29 @@
         }
 
         async function openChat(id, title) {
-            document.getElementById('chat-screen').style.display = 'flex';
-            document.getElementById('chat-title').innerText = title;
-            document.getElementById('chat-body').innerHTML = '';
-            document.querySelector('.dock-container').style.display = 'none';
-
+            document.getElementById('chat-screen').style.display = 'flex'; document.getElementById('chat-title').innerText = title; document.getElementById('chat-body').innerHTML = ''; document.querySelector('.dock-container').style.display = 'none';
             const res = await fetch(`/chat_history/${id}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
             const body = document.getElementById('chat-body');
             msgs.forEach(m => body.innerHTML += renderMsg(m));
             body.scrollTop = body.scrollHeight;
-
             if(currentSocket) currentSocket.close();
             const proto = location.protocol === 'https:' ? 'wss' : 'ws';
             currentSocket = new WebSocket(`${proto}://${location.host}/ws/${id}?token=${token}`);
             currentSocket.onmessage = e => { const d = JSON.parse(e.data); if(d.type === 'msg') { body.innerHTML += renderMsg(d); body.scrollTop = body.scrollHeight; } };
         }
-
-        function closeChat() { 
-            document.getElementById('chat-screen').style.display = 'none'; 
-            document.querySelector('.dock-container').style.display = 'flex';
-            if(currentSocket) currentSocket.close(); 
-        }
-        function renderMsg(m) {
-            const isMe = m.user === currentUser;
-            return `<div class="bubble ${isMe ? 'me' : 'them'}">
-                ${!isMe ? `<div style="font-size:10px;opacity:0.6">${m.user}</div>` : ''}
-                ${m.text.startsWith('data:audio') ? `<audio controls src="${m.text}"></audio>` : m.text}
-            </div>`;
-        }
+        function closeChat() { document.getElementById('chat-screen').style.display = 'none'; document.querySelector('.dock-container').style.display = 'flex'; if(currentSocket) currentSocket.close(); }
+        function renderMsg(m) { const isMe = m.user === currentUser; return `<div class="bubble ${isMe ? 'me' : 'them'}">${!isMe ? `<div style="font-size:10px;opacity:0.6">${m.user}</div>` : ''}${m.text.startsWith('data:audio') ? `<audio controls src="${m.text}"></audio>` : m.text}</div>`; }
         function send() { const i = document.getElementById('chat-input'); if(i.value && currentSocket) { currentSocket.send(i.value); i.value = ''; } }
-
         function resizeImage(file, w, h) { return new Promise((resolve) => { if(!file) resolve(null); const img = new Image(); img.src = URL.createObjectURL(file); img.onload = () => { const cvs = document.createElement('canvas'); let scale = Math.max(w/img.width, h/img.height); cvs.width = w; cvs.height = h; cvs.getContext('2d').drawImage(img, 0,0, img.width*scale, img.height*scale); resolve(cvs.toDataURL('image/jpeg', 0.7)); }; }); }
         async function previewAvatar(i) { selectedFileGlobal = i.files[0]; const r = await resizeImage(selectedFileGlobal, 200, 200); document.getElementById('reg-avatar-preview').src = r; document.getElementById('reg-avatar-preview').style.display = 'block'; document.getElementById('avatar-placeholder').style.display='none'; }
         async function register() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; let av = selectedFileGlobal ? await resizeImage(selectedFileGlobal, 150, 150) : null; const res = await fetch('/register', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({username:u, password:p, avatar_data:av}) }); if(res.ok) alert("Registered!"); else alert("Taken"); }
         async function login() { let u = document.getElementById('login-user').value; let p = document.getElementById('login-pass').value; const res = await fetch('/token', { method: 'POST', body: new URLSearchParams({username:u, password:p}) }); const d = await res.json(); if(res.ok) { token = d.access_token; currentUser = d.username; currentAvatar = d.avatar; isAdmin = d.is_admin; localStorage.setItem('squad_token', token); localStorage.setItem('squad_user', currentUser); localStorage.setItem('squad_avatar', currentAvatar||''); localStorage.setItem('squad_admin', isAdmin); document.getElementById('login-modal').style.display='none'; updateBadge(); loadFeed(); } else alert("Fail"); }
-        async function submitCreate() { 
-            let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; 
-            let tm = document.getElementById('new-time').value || "Now"; let mx = document.getElementById('new-max').value || 4;
-            let f = document.getElementById('new-img').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; 
-            if(!t) return alert("Title needed");
-            await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, event_time:tm, max_people:parseInt(mx), image_data:img}) }); 
-            document.getElementById('create-modal').style.display='none'; loadFeed(); 
-        }
+        async function submitCreate() { let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; let tm = document.getElementById('new-time').value || "Now"; let mx = document.getElementById('new-max').value || 4; let f = document.getElementById('new-img').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; if(!t) return alert("Title needed"); await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, event_time:tm, max_people:parseInt(mx), image_data:img}) }); document.getElementById('create-modal').style.display='none'; loadFeed(); }
         async function del(id) { if(confirm("Delete?")) await fetch(`/delete_hangout/${id}`, {method:'DELETE', headers:{'Authorization':`Bearer ${token}`}}); loadFeed(); }
         function logout() { localStorage.clear(); location.reload(); }
-        
         let mediaRecorder; let audioChunks = []; let isRecording = false; const micBtn = document.getElementById('mic-btn');
-        async function toggleRecord() {
-            if (!isRecording) {
-                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) { alert("Mic not supported."); return; }
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    mediaRecorder = new MediaRecorder(stream);
-                    mediaRecorder.start(); audioChunks = [];
-                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
-                    isRecording = true; micBtn.classList.add('recording');
-                } catch(e) { alert("Mic denied."); }
-            } else {
-                if(mediaRecorder && mediaRecorder.state !== 'inactive') {
-                    mediaRecorder.stop();
-                    mediaRecorder.onstop = () => {
-                        const blob = new Blob(audioChunks, { type: 'audio/webm' });
-                        const reader = new FileReader();
-                        reader.readAsDataURL(blob);
-                        reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); }
-                    };
-                }
-                isRecording = false; micBtn.classList.remove('recording');
-            }
-        }
+        async function toggleRecord() { if (!isRecording) { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); mediaRecorder = new MediaRecorder(stream); mediaRecorder.start(); audioChunks = []; mediaRecorder.ondataavailable = e => audioChunks.push(e.data); isRecording = true; micBtn.classList.add('recording'); } catch(e) { alert("Mic denied."); } } else { if(mediaRecorder) { mediaRecorder.stop(); mediaRecorder.onstop = () => { const blob = new Blob(audioChunks, { type: 'audio/webm' }); const reader = new FileReader(); reader.readAsDataURL(blob); reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); } }; } isRecording = false; micBtn.classList.remove('recording'); } }
         let selectedFileGlobal = null;
     </script>
 </body>
