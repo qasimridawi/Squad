@@ -12,13 +12,11 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-# --- CONFIG ---
-SECRET_KEY = "squad-v28-identity"
+SECRET_KEY = "squad-v31-all-in"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 DB_FILE = "squad_db_v18.json"
 
-# --- DB ENGINE ---
 def load_db():
     if not os.path.exists(DB_FILE):
         default_db = {"users": [], "hangouts": [], "dms": []}
@@ -26,8 +24,7 @@ def load_db():
         return default_db
     try:
         with open(DB_FILE, 'r') as f: return json.load(f)
-    except:
-        return {"users": [], "hangouts": [], "dms": []}
+    except: return {"users": [], "hangouts": [], "dms": []}
 
 def save_db(data):
     with open(DB_FILE, 'w') as f: json.dump(data, f)
@@ -38,16 +35,14 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # --- WS MANAGER ---
 class ConnectionManager:
-    def __init__(self):
-        self.active_connections: Dict[int, List[WebSocket]] = {}
+    def __init__(self): self.active_connections: Dict[int, List[WebSocket]] = {}
     async def connect(self, websocket: WebSocket, hangout_id: int):
         await websocket.accept()
         if hangout_id not in self.active_connections: self.active_connections[hangout_id] = []
         self.active_connections[hangout_id].append(websocket)
     def disconnect(self, websocket: WebSocket, hangout_id: int):
-        if hangout_id in self.active_connections:
-            if websocket in self.active_connections[hangout_id]:
-                self.active_connections[hangout_id].remove(websocket)
+        if hangout_id in self.active_connections and websocket in self.active_connections[hangout_id]:
+            self.active_connections[hangout_id].remove(websocket)
     async def broadcast(self, message: dict, hangout_id: int):
         if hangout_id in self.active_connections:
             for connection in self.active_connections[hangout_id][:]:
@@ -55,10 +50,8 @@ class ConnectionManager:
                 except: pass
 manager = ConnectionManager()
 
-# --- AUTH & HELPERS ---
 def get_hash(p): return hashlib.sha256(p.encode()).hexdigest()
 def create_token(d): return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
-
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try: 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -69,9 +62,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     if not user: raise HTTPException(status_code=401)
     return user
 
-# --- ENDPOINTS ---
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v28_identity"}
+def health(): return {"status": "ok", "version": "v31_all"}
 
 @app.post("/register")
 def register(u: dict):
@@ -94,43 +86,27 @@ def login(f: OAuth2PasswordRequestForm = Depends()):
     db = load_db()
     user = next((u for u in db["users"] if u["username"] == f.username), None)
     if not user or user["hashed_password"] != get_hash(f.password): raise HTTPException(400, "Fail")
-    return {
-        "access_token": create_token({"sub": user["username"]}), 
-        "token_type": "bearer", 
-        "username": user["username"], 
-        "avatar": user["avatar_data"],
-        "bio": user.get("bio", ""),
-        "instagram": user.get("instagram", ""),
-        "is_admin": user["is_admin"]
-    }
+    return {"access_token": create_token({"sub": user["username"]}), "token_type": "bearer", "username": user["username"], "avatar": user["avatar_data"], "is_admin": user.get("is_admin", False)}
 
-# --- PROFILE UPDATE ---
-class ProfileSchema(BaseModel):
-    bio: str
-    instagram: str
-
+class ProfileSchema(BaseModel): bio: str; instagram: str
 @app.post("/update_profile")
 def update_profile(p: ProfileSchema, u: dict = Depends(get_current_user)):
     db = load_db()
     for user in db["users"]:
         if user["username"] == u["username"]:
-            user["bio"] = p.bio
-            user["instagram"] = p.instagram
+            user["bio"] = p.bio; user["instagram"] = p.instagram
             save_db(db)
-            return {"msg": "updated", "bio": p.bio, "instagram": p.instagram}
-    raise HTTPException(404, "User not found")
+            return {"msg": "updated"}
+    raise HTTPException(404)
 
 @app.get("/get_user/{username}")
 def get_user_profile(username: str):
     db = load_db()
     user = next((u for u in db["users"] if u["username"] == username), None)
-    if not user: raise HTTPException(404, "Not found")
-    return {"username": user["username"], "avatar": user["avatar_data"], "bio": user.get("bio", ""), "instagram": user.get("instagram", "")}
+    if not user: raise HTTPException(404)
+    return {"username": user["username"], "avatar": user["avatar_data"], "bio": user.get("bio", ""), "instagram": user.get("instagram", ""), "is_admin": user.get("is_admin", False)}
 
-# --- HANGOUTS ---
-class HangoutSchema(BaseModel):
-    title: str; location: str; event_time: str; max_people: int; image_data: Optional[str] = None
-
+class HangoutSchema(BaseModel): title: str; location: str; event_time: str; max_people: int; image_data: Optional[str] = None
 @app.post("/create_hangout/")
 def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
     db = load_db()
@@ -138,7 +114,7 @@ def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
     new_hangout = {
         "id": new_id, "title": h.title, "location": h.location, "event_time": h.event_time,
         "max_people": h.max_people, "host_username": u["username"], "image_data": h.image_data,
-        "attendees": [{"username": u["username"], "avatar": u["avatar_data"]}], "messages": []
+        "attendees": [{"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)}], "messages": []
     }
     db["hangouts"].append(new_hangout)
     save_db(db)
@@ -151,7 +127,7 @@ def join_h(id: int, u: dict = Depends(get_current_user)):
         if h["id"] == id:
             if len(h["attendees"]) >= h["max_people"]: raise HTTPException(400, "Full")
             if not any(a["username"] == u["username"] for a in h["attendees"]):
-                h["attendees"].append({"username": u["username"], "avatar": u["avatar_data"]})
+                h["attendees"].append({"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)})
                 save_db(db)
             break
     return {"msg": "ok"}
@@ -159,7 +135,7 @@ def join_h(id: int, u: dict = Depends(get_current_user)):
 @app.delete("/delete_hangout/{id}")
 def del_h(id: int, u: dict = Depends(get_current_user)):
     db = load_db()
-    db["hangouts"] = [h for h in db["hangouts"] if not (h["id"] == id and (h["host_username"] == u["username"] or u["is_admin"]))]
+    db["hangouts"] = [h for h in db["hangouts"] if not (h["id"] == id and (h["host_username"] == u["username"] or u.get("is_admin", False)))]
     save_db(db)
     return {"msg": "ok"}
 
@@ -183,6 +159,41 @@ def chat_hist(hangout_id: int):
     h = next((h for h in db["hangouts"] if h["id"] == hangout_id), None)
     return h["messages"] if h else []
 
+# --- PRIVATE DM LOGIC ---
+class DMSchema(BaseModel): receiver: str; text: str
+@app.post("/send_dm")
+def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
+    db = load_db()
+    db["dms"].append({
+        "sender": u["username"], "receiver": dm.receiver, "text": dm.text,
+        "timestamp": datetime.now().strftime("%H:%M")
+    })
+    save_db(db)
+    return {"msg": "sent"}
+
+@app.get("/my_dms")
+def get_my_dms(u: dict = Depends(get_current_user)):
+    db = load_db()
+    # Return list of conversation partners and last message
+    my_msgs = [m for m in db["dms"] if m["sender"] == u["username"] or m["receiver"] == u["username"]]
+    partners = {}
+    for m in my_msgs:
+        p = m["receiver"] if m["sender"] == u["username"] else m["sender"]
+        partners[p] = m # Will end up with last message
+    
+    result = []
+    for p_name, last_msg in partners.items():
+        p_data = next((user for user in db["users"] if user["username"] == p_name), None)
+        avatar = p_data["avatar_data"] if p_data else None
+        result.append({"partner": p_name, "avatar": avatar, "last_msg": last_msg["text"]})
+    return result
+
+@app.get("/dm_history/{partner}")
+def dm_history(partner: str, u: dict = Depends(get_current_user)):
+    db = load_db()
+    msgs = [m for m in db["dms"] if (m["sender"] == u["username"] and m["receiver"] == partner) or (m["sender"] == partner and m["receiver"] == u["username"])]
+    return msgs
+
 @app.websocket("/ws/{hangout_id}")
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     try:
@@ -195,13 +206,14 @@ async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(
         await manager.connect(websocket, hangout_id)
         while True:
             data = await websocket.receive_text()
+            is_admin = user.get("is_admin", False)
             db = load_db()
             for h in db["hangouts"]:
                 if h["id"] == hangout_id:
-                    h["messages"].append({"user": username, "avatar": user["avatar_data"], "text": data})
+                    h["messages"].append({"user": username, "avatar": user["avatar_data"], "text": data, "is_admin": is_admin})
                     save_db(db)
                     break
-            await manager.broadcast({"type": "msg", "user": username, "avatar": user["avatar_data"], "text": data}, hangout_id)
+            await manager.broadcast({"type": "msg", "user": username, "avatar": user["avatar_data"], "text": data, "is_admin": is_admin}, hangout_id)
     except: manager.disconnect(websocket, hangout_id)
 
 @app.get("/")
