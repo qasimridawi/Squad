@@ -12,12 +12,11 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-SECRET_KEY = "squad-v36-final"
+SECRET_KEY = "squad-v37-syncfix"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 DB_FILE = "squad_db_v18.json"
 
-# --- DB ENGINE (FIXED SYNTAX) ---
 def load_db():
     if not os.path.exists(DB_FILE):
         default_db = {"users": [], "hangouts": [], "dms": []}
@@ -39,11 +38,11 @@ if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- MULTI-DEVICE CONNECTION MANAGER ---
+# --- CASE-INSENSITIVE CONNECTION MANAGER ---
 class ConnectionManager:
     def __init__(self):
-        self.active_connections: Dict[int, List[WebSocket]] = {} # Groups
-        self.user_connections: Dict[str, List[WebSocket]] = {}   # Personal (List for Multi-device)
+        self.active_connections: Dict[int, List[WebSocket]] = {}
+        self.user_connections: Dict[str, List[WebSocket]] = {}
 
     # GROUP LOGIC
     async def connect(self, websocket: WebSocket, hangout_id: int):
@@ -65,28 +64,29 @@ class ConnectionManager:
                 except:
                     pass
 
-    # PERSONAL LOGIC (MULTI-DEVICE SUPPORT)
+    # PERSONAL LOGIC (CASE INSENSITIVE)
     async def connect_user(self, websocket: WebSocket, username: str):
         await websocket.accept()
-        if username not in self.user_connections:
-            self.user_connections[username] = []
-        self.user_connections[username].append(websocket)
+        key = username.lower() # FORCE LOWERCASE
+        if key not in self.user_connections:
+            self.user_connections[key] = []
+        self.user_connections[key].append(websocket)
 
     def disconnect_user(self, websocket: WebSocket, username: str):
-        if username in self.user_connections:
-            if websocket in self.user_connections[username]:
-                self.user_connections[username].remove(websocket)
+        key = username.lower() # FORCE LOWERCASE
+        if key in self.user_connections:
+            if websocket in self.user_connections[key]:
+                self.user_connections[key].remove(websocket)
 
     async def send_to_user(self, username: str, message: dict):
-        if username in self.user_connections:
-            # Send to ALL active sockets for this user (Phone + Laptop)
-            for connection in self.user_connections[username][:]:
+        key = username.lower() # FORCE LOWERCASE
+        if key in self.user_connections:
+            for connection in self.user_connections[key][:]:
                 try:
                     await connection.send_json(message)
                 except:
-                    # If dead, remove it
-                    if connection in self.user_connections[username]:
-                        self.user_connections[username].remove(connection)
+                    if connection in self.user_connections[key]:
+                        self.user_connections[key].remove(connection)
 
 manager = ConnectionManager()
 
@@ -101,7 +101,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         db = load_db()
-        user = next((u for u in db["users"] if u["username"] == username), None)
+        user = next((u for u in db["users"] if u["username"].lower() == username.lower()), None)
     except:
         raise HTTPException(status_code=401)
     if not user:
@@ -110,12 +110,12 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "version": "v36_final"}
+    return {"status": "ok", "version": "v37_syncfix"}
 
 @app.post("/register")
 def register(u: dict):
     db = load_db()
-    if any(user["username"] == u['username'] for user in db["users"]):
+    if any(user["username"].lower() == u['username'].lower() for user in db["users"]):
         raise HTTPException(400, "Taken")
     new_user = {
         "username": u['username'],
@@ -132,7 +132,7 @@ def register(u: dict):
 @app.post("/token")
 def login(f: OAuth2PasswordRequestForm = Depends()):
     db = load_db()
-    user = next((u for u in db["users"] if u["username"] == f.username), None)
+    user = next((u for u in db["users"] if u["username"].lower() == f.username.lower()), None)
     if not user or user["hashed_password"] != get_hash(f.password):
         raise HTTPException(400, "Fail")
     return {
@@ -161,7 +161,7 @@ def update_profile(p: ProfileSchema, u: dict = Depends(get_current_user)):
 @app.get("/get_user/{username}")
 def get_user_profile(username: str):
     db = load_db()
-    user = next((u for u in db["users"] if u["username"] == username), None)
+    user = next((u for u in db["users"] if u["username"].lower() == username.lower()), None)
     if not user:
         raise HTTPException(404)
     return {
@@ -233,7 +233,7 @@ def chat_hist(hangout_id: int):
     h = next((h for h in db["hangouts"] if h["id"] == hangout_id), None)
     return h["messages"] if h else []
 
-# --- PRIVATE DM LOGIC (REAL-TIME + MULTI-DEVICE) ---
+# --- PRIVATE DM LOGIC (FIXED PUSH) ---
 class DMSchema(BaseModel):
     receiver: str
     text: str
@@ -241,7 +241,6 @@ class DMSchema(BaseModel):
 @app.post("/send_dm")
 async def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
     db = load_db()
-    # Save to DB
     msg_obj = {
         "sender": u["username"],
         "receiver": dm.receiver,
@@ -251,8 +250,11 @@ async def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
     db["dms"].append(msg_obj)
     save_db(db)
     
-    # REAL-TIME PUSH (Multi-device safe)
+    # PUSH TO RECEIVER (Real-time)
     await manager.send_to_user(dm.receiver, {"type": "dm", "sender": u["username"], "text": dm.text})
+    
+    # PUSH BACK TO SENDER (So other devices see sent msg)
+    await manager.send_to_user(u["username"], {"type": "dm", "sender": u["username"], "text": dm.text})
     
     return {"msg": "sent"}
 
@@ -277,7 +279,6 @@ def dm_history(partner: str, u: dict = Depends(get_current_user)):
     msgs = [m for m in db["dms"] if (m["sender"] == u["username"] and m["receiver"] == partner) or (m["sender"] == partner and m["receiver"] == u["username"])]
     return msgs
 
-# --- PERSONAL WEBSOCKET ---
 @app.websocket("/ws/me")
 async def ws_personal(websocket: WebSocket, token: str = Query(...)):
     try:
@@ -290,11 +291,10 @@ async def ws_personal(websocket: WebSocket, token: str = Query(...)):
         
         await manager.connect_user(websocket, username)
         while True:
-            await websocket.receive_text() # Keep connection alive
+            await websocket.receive_text()
     except:
-        manager.disconnect_user(websocket, username)
+        manager.disconnect_user(username)
 
-# --- GROUP WEBSOCKET ---
 @app.websocket("/ws/{hangout_id}")
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     try:
