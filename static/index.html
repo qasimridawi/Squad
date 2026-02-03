@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V34</title>
+    <title>Squad V38</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -26,8 +26,18 @@
         #user-badge { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); cursor: pointer; }
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
+        /* TOAST NOTIFICATION */
+        #toast {
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background: rgba(20, 20, 20, 0.9); border: 1px solid #ec4899;
+            padding: 12px 24px; border-radius: 99px; z-index: 4000;
+            display: none; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            animation: slideDown 0.3s forwards;
+        }
+        @keyframes slideDown { from { top: -50px; } to { top: 20px; } }
+
         /* STATUS DOT */
-        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; transition: 0.3s; }
         .status-dot.green { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
         .status-dot.red { background: #ef4444; }
 
@@ -99,6 +109,11 @@
     </style>
 </head>
 <body>
+
+    <div id="toast">
+        <div style="font-size:20px;">💬</div>
+        <div id="toast-text" style="color:white; font-size:14px; font-weight:600;">New message</div>
+    </div>
 
     <div id="login-modal" class="modal">
         <div class="modal-card animate">
@@ -174,11 +189,12 @@
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let map = null; let markers = []; let currentSocket = null; let activeDM = null;
         let personalSocket = null;
+        let heartbeatInterval = null;
 
         if (!token) document.getElementById('login-modal').style.display = 'flex'; 
         else { updateBadge(); loadFeed(); initPersonalSocket(); }
 
-        // --- THE UNBREAKABLE CONNECTION LOGIC ---
+        // --- HEARTBEAT & NOTIFICATION LOGIC ---
         function initPersonalSocket() {
             if (personalSocket && personalSocket.readyState === WebSocket.OPEN) return;
             
@@ -188,25 +204,42 @@
             personalSocket.onopen = () => {
                 console.log("Connected to DM Stream");
                 updateConnectionStatus(true);
+                // Start Heartbeat
+                if(heartbeatInterval) clearInterval(heartbeatInterval);
+                heartbeatInterval = setInterval(() => {
+                    if(personalSocket.readyState === WebSocket.OPEN) personalSocket.send("ping");
+                }, 20000); // 20s Ping
             };
 
             personalSocket.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
-                // IF ON CHAT SCREEN WITH SENDER, RENDER IT
-                if (msg.type === "dm" && activeDM === msg.sender) {
+                
+                // Show Toast Notification
+                if(msg.type === "dm" && msg.sender !== currentUser) {
+                    showToast(`Message from ${msg.sender}`);
+                }
+
+                // If chat is open, render
+                if (msg.type === "dm" && activeDM && activeDM.toLowerCase() === msg.sender.toLowerCase()) {
                     renderMsg({user: msg.sender, text: msg.text});
                 } 
-                // ALSO VISUAL NOTIFICATION
+                
                 if (msg.type === "dm") {
-                    const inboxIcon = document.getElementById('nav-inbox');
-                    if (inboxIcon) inboxIcon.style.color = '#ec4899';
+                    document.getElementById('nav-inbox').style.color = '#ec4899';
                 }
             };
 
             personalSocket.onclose = () => {
                 updateConnectionStatus(false);
-                setTimeout(initPersonalSocket, 3000); // Retry every 3s
+                setTimeout(initPersonalSocket, 3000); 
             };
+        }
+
+        function showToast(text) {
+            const t = document.getElementById('toast');
+            document.getElementById('toast-text').innerText = text;
+            t.style.display = 'flex';
+            setTimeout(() => { t.style.display = 'none'; }, 3000);
         }
 
         function updateConnectionStatus(isOnline) {
@@ -227,7 +260,7 @@
             document.getElementById(`${tab}-view`).style.display = 'block';
             if(tab === 'map') { setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 100); }
             if(tab === 'inbox') {
-                document.getElementById('nav-inbox').style.color = 'white'; // Clear notification
+                document.getElementById('nav-inbox').style.color = 'white'; 
                 loadInbox('plans');
             }
         }
@@ -322,7 +355,6 @@
         }
 
         async function openDM(partner) {
-            // Ensure connection is alive
             if (!personalSocket || personalSocket.readyState !== WebSocket.OPEN) initPersonalSocket();
             activeDM = partner;
             setupChatUI(partner);
@@ -333,7 +365,6 @@
 
         function setupChatUI(title) {
             document.getElementById('chat-screen').style.display = 'flex'; document.getElementById('chat-title').innerText = title; document.getElementById('chat-body').innerHTML = ''; document.querySelector('.dock-container').style.display = 'none';
-            // Show status immediately
             updateConnectionStatus(personalSocket && personalSocket.readyState === WebSocket.OPEN);
         }
 
@@ -349,7 +380,6 @@
             const txt = document.getElementById('chat-input').value;
             if(!txt) return;
             if (activeDM) {
-                // Send to backend via REST (safe)
                 await fetch('/send_dm', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify({receiver: activeDM, text: txt}) });
                 renderMsg({user: currentUser, text: txt});
             } else {
