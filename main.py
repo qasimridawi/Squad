@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-SECRET_KEY = "squad-v31-all-in"
+SECRET_KEY = "squad-v32-realtime"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 DB_FILE = "squad_db_v18.json"
@@ -22,8 +22,7 @@ def load_db():
         default_db = {"users": [], "hangouts": [], "dms": []}
         with open(DB_FILE, 'w') as f: json.dump(default_db, f)
         return default_db
-    try:
-        with open(DB_FILE, 'r') as f: return json.load(f)
+    try: with open(DB_FILE, 'r') as f: return json.load(f)
     except: return {"users": [], "hangouts": [], "dms": []}
 
 def save_db(data):
@@ -33,21 +32,42 @@ app = FastAPI()
 if not os.path.exists("static"): os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- WS MANAGER ---
+# --- UPGRADED WS MANAGER ---
 class ConnectionManager:
-    def __init__(self): self.active_connections: Dict[int, List[WebSocket]] = {}
+    def __init__(self):
+        self.active_connections: Dict[int, List[WebSocket]] = {} # For Groups
+        self.user_connections: Dict[str, WebSocket] = {} # For Private DMs
+
+    # GROUP LOGIC
     async def connect(self, websocket: WebSocket, hangout_id: int):
         await websocket.accept()
         if hangout_id not in self.active_connections: self.active_connections[hangout_id] = []
         self.active_connections[hangout_id].append(websocket)
+
     def disconnect(self, websocket: WebSocket, hangout_id: int):
         if hangout_id in self.active_connections and websocket in self.active_connections[hangout_id]:
             self.active_connections[hangout_id].remove(websocket)
+
     async def broadcast(self, message: dict, hangout_id: int):
         if hangout_id in self.active_connections:
             for connection in self.active_connections[hangout_id][:]:
                 try: await connection.send_json(message)
                 except: pass
+
+    # PERSONAL DM LOGIC
+    async def connect_user(self, websocket: WebSocket, username: str):
+        await websocket.accept()
+        self.user_connections[username] = websocket
+
+    def disconnect_user(self, username: str):
+        if username in self.user_connections:
+            del self.user_connections[username]
+
+    async def send_to_user(self, username: str, message: dict):
+        if username in self.user_connections:
+            try: await self.user_connections[username].send_json(message)
+            except: pass
+
 manager = ConnectionManager()
 
 def get_hash(p): return hashlib.sha256(p.encode()).hexdigest()
@@ -63,20 +83,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 @app.get("/health")
-def health(): return {"status": "ok", "version": "v31_all"}
+def health(): return {"status": "ok", "version": "v32_realtime"}
 
 @app.post("/register")
 def register(u: dict):
     db = load_db()
     if any(user["username"] == u['username'] for user in db["users"]): raise HTTPException(400, "Taken")
-    new_user = {
-        "username": u['username'],
-        "hashed_password": get_hash(u['password']),
-        "avatar_data": u.get('avatar_data'),
-        "bio": "Just joined Squad!",
-        "instagram": "",
-        "is_admin": (u['username'].lower() == "qasim")
-    }
+    new_user = { "username": u['username'], "hashed_password": get_hash(u['password']), "avatar_data": u.get('avatar_data'), "bio": "Just joined Squad!", "instagram": "", "is_admin": (u['username'].lower() == "qasim") }
     db["users"].append(new_user)
     save_db(db)
     return {"msg": "ok"}
@@ -111,11 +124,7 @@ class HangoutSchema(BaseModel): title: str; location: str; event_time: str; max_
 def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
     db = load_db()
     new_id = len(db["hangouts"]) + 1
-    new_hangout = {
-        "id": new_id, "title": h.title, "location": h.location, "event_time": h.event_time,
-        "max_people": h.max_people, "host_username": u["username"], "image_data": h.image_data,
-        "attendees": [{"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)}], "messages": []
-    }
+    new_hangout = { "id": new_id, "title": h.title, "location": h.location, "event_time": h.event_time, "max_people": h.max_people, "host_username": u["username"], "image_data": h.image_data, "attendees": [{"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)}], "messages": [] }
     db["hangouts"].append(new_hangout)
     save_db(db)
     return {"msg": "ok"}
@@ -144,13 +153,7 @@ def feed(u: dict = Depends(get_current_user)):
     db = load_db()
     results = []
     for h in db["hangouts"]:
-        results.append({
-            "id": h["id"], "title": h["title"], "location": h["location"],
-            "event_time": h.get("event_time", "Now"), "max_people": h.get("max_people", 5),
-            "host": h["host_username"], "image_data": h.get("image_data"),
-            "attendees": h["attendees"], "count": len(h["attendees"]),
-            "is_full": len(h["attendees"]) >= h.get("max_people", 5)
-        })
+        results.append({ "id": h["id"], "title": h["title"], "location": h["location"], "event_time": h.get("event_time", "Now"), "max_people": h.get("max_people", 5), "host": h["host_username"], "image_data": h.get("image_data"), "attendees": h["attendees"], "count": len(h["attendees"]), "is_full": len(h["attendees"]) >= h.get("max_people", 5) })
     return {"feed": results}
 
 @app.get("/chat_history/{hangout_id}")
@@ -159,28 +162,29 @@ def chat_hist(hangout_id: int):
     h = next((h for h in db["hangouts"] if h["id"] == hangout_id), None)
     return h["messages"] if h else []
 
-# --- PRIVATE DM LOGIC ---
+# --- PRIVATE DM LOGIC (REAL-TIME) ---
 class DMSchema(BaseModel): receiver: str; text: str
 @app.post("/send_dm")
-def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
+async def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
     db = load_db()
-    db["dms"].append({
-        "sender": u["username"], "receiver": dm.receiver, "text": dm.text,
-        "timestamp": datetime.now().strftime("%H:%M")
-    })
+    # Save to DB
+    msg_obj = { "sender": u["username"], "receiver": dm.receiver, "text": dm.text, "timestamp": datetime.now().strftime("%H:%M") }
+    db["dms"].append(msg_obj)
     save_db(db)
+    
+    # REAL-TIME PUSH
+    await manager.send_to_user(dm.receiver, {"type": "dm", "sender": u["username"], "text": dm.text})
+    
     return {"msg": "sent"}
 
 @app.get("/my_dms")
 def get_my_dms(u: dict = Depends(get_current_user)):
     db = load_db()
-    # Return list of conversation partners and last message
     my_msgs = [m for m in db["dms"] if m["sender"] == u["username"] or m["receiver"] == u["username"]]
     partners = {}
     for m in my_msgs:
         p = m["receiver"] if m["sender"] == u["username"] else m["sender"]
-        partners[p] = m # Will end up with last message
-    
+        partners[p] = m 
     result = []
     for p_name, last_msg in partners.items():
         p_data = next((user for user in db["users"] if user["username"] == p_name), None)
@@ -194,6 +198,19 @@ def dm_history(partner: str, u: dict = Depends(get_current_user)):
     msgs = [m for m in db["dms"] if (m["sender"] == u["username"] and m["receiver"] == partner) or (m["sender"] == partner and m["receiver"] == u["username"])]
     return msgs
 
+# --- PERSONAL WEBSOCKET ---
+@app.websocket("/ws/me")
+async def ws_personal(websocket: WebSocket, token: str = Query(...)):
+    try:
+        try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); username = payload.get("sub")
+        except: await websocket.close(); return
+        
+        await manager.connect_user(websocket, username)
+        while True:
+            await websocket.receive_text() # Keep connection alive
+    except: manager.disconnect_user(username)
+
+# --- GROUP WEBSOCKET ---
 @app.websocket("/ws/{hangout_id}")
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     try:
