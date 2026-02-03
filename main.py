@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from pydantic import BaseModel
 
-SECRET_KEY = "squad-v37-syncfix"
+SECRET_KEY = "squad-v39-visuals"
 ALGORITHM = "HS256"
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 DB_FILE = "squad_db_v18.json"
@@ -38,13 +38,12 @@ if not os.path.exists("static"):
     os.makedirs("static")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# --- CASE-INSENSITIVE CONNECTION MANAGER ---
+# --- CONNECTION MANAGER ---
 class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[int, List[WebSocket]] = {}
         self.user_connections: Dict[str, List[WebSocket]] = {}
 
-    # GROUP LOGIC
     async def connect(self, websocket: WebSocket, hangout_id: int):
         await websocket.accept()
         if hangout_id not in self.active_connections:
@@ -59,72 +58,50 @@ class ConnectionManager:
     async def broadcast(self, message: dict, hangout_id: int):
         if hangout_id in self.active_connections:
             for connection in self.active_connections[hangout_id][:]:
-                try:
-                    await connection.send_json(message)
-                except:
-                    pass
+                try: await connection.send_json(message)
+                except: pass
 
-    # PERSONAL LOGIC (CASE INSENSITIVE)
     async def connect_user(self, websocket: WebSocket, username: str):
         await websocket.accept()
-        key = username.lower() # FORCE LOWERCASE
-        if key not in self.user_connections:
-            self.user_connections[key] = []
-        self.user_connections[key].append(websocket)
+        if username not in self.user_connections:
+            self.user_connections[username] = []
+        self.user_connections[username].append(websocket)
 
     def disconnect_user(self, websocket: WebSocket, username: str):
-        key = username.lower() # FORCE LOWERCASE
-        if key in self.user_connections:
-            if websocket in self.user_connections[key]:
-                self.user_connections[key].remove(websocket)
+        if username in self.user_connections:
+            if websocket in self.user_connections[username]:
+                self.user_connections[username].remove(websocket)
 
     async def send_to_user(self, username: str, message: dict):
-        key = username.lower() # FORCE LOWERCASE
-        if key in self.user_connections:
-            for connection in self.user_connections[key][:]:
-                try:
-                    await connection.send_json(message)
+        if username in self.user_connections:
+            for connection in self.user_connections[username][:]:
+                try: await connection.send_json(message)
                 except:
-                    if connection in self.user_connections[key]:
-                        self.user_connections[key].remove(connection)
+                    if connection in self.user_connections[username]:
+                        self.user_connections[username].remove(connection)
 
 manager = ConnectionManager()
 
-def get_hash(p):
-    return hashlib.sha256(p.encode()).hexdigest()
-
-def create_token(d):
-    return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
-
+def get_hash(p): return hashlib.sha256(p.encode()).hexdigest()
+def create_token(d): return jwt.encode(d, SECRET_KEY, algorithm=ALGORITHM)
 async def get_current_user(token: str = Depends(oauth2_scheme)):
     try: 
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username = payload.get("sub")
         db = load_db()
-        user = next((u for u in db["users"] if u["username"].lower() == username.lower()), None)
-    except:
-        raise HTTPException(status_code=401)
-    if not user:
-        raise HTTPException(status_code=401)
+        user = next((u for u in db["users"] if u["username"] == username), None)
+    except: raise HTTPException(status_code=401)
+    if not user: raise HTTPException(status_code=401)
     return user
 
 @app.get("/health")
-def health():
-    return {"status": "ok", "version": "v37_syncfix"}
+def health(): return {"status": "ok", "version": "v39_visuals"}
 
 @app.post("/register")
 def register(u: dict):
     db = load_db()
-    if any(user["username"].lower() == u['username'].lower() for user in db["users"]):
-        raise HTTPException(400, "Taken")
-    new_user = {
-        "username": u['username'],
-        "hashed_password": get_hash(u['password']),
-        "avatar_data": u.get('avatar_data'),
-        "bio": "Just joined Squad!",
-        "instagram": "",
-        "is_admin": (u['username'].lower() == "qasim")
-    }
+    if any(user["username"] == u['username'] for user in db["users"]): raise HTTPException(400, "Taken")
+    new_user = { "username": u['username'], "hashed_password": get_hash(u['password']), "avatar_data": u.get('avatar_data'), "bio": "Just joined Squad!", "instagram": "", "is_admin": (u['username'].lower() == "qasim") }
     db["users"].append(new_user)
     save_db(db)
     return {"msg": "ok"}
@@ -132,28 +109,17 @@ def register(u: dict):
 @app.post("/token")
 def login(f: OAuth2PasswordRequestForm = Depends()):
     db = load_db()
-    user = next((u for u in db["users"] if u["username"].lower() == f.username.lower()), None)
-    if not user or user["hashed_password"] != get_hash(f.password):
-        raise HTTPException(400, "Fail")
-    return {
-        "access_token": create_token({"sub": user["username"]}),
-        "token_type": "bearer",
-        "username": user["username"],
-        "avatar": user["avatar_data"],
-        "is_admin": user.get("is_admin", False)
-    }
+    user = next((u for u in db["users"] if u["username"] == f.username), None)
+    if not user or user["hashed_password"] != get_hash(f.password): raise HTTPException(400, "Fail")
+    return {"access_token": create_token({"sub": user["username"]}), "token_type": "bearer", "username": user["username"], "avatar": user["avatar_data"], "is_admin": user.get("is_admin", False)}
 
-class ProfileSchema(BaseModel):
-    bio: str
-    instagram: str
-
+class ProfileSchema(BaseModel): bio: str; instagram: str
 @app.post("/update_profile")
 def update_profile(p: ProfileSchema, u: dict = Depends(get_current_user)):
     db = load_db()
     for user in db["users"]:
         if user["username"] == u["username"]:
-            user["bio"] = p.bio
-            user["instagram"] = p.instagram
+            user["bio"] = p.bio; user["instagram"] = p.instagram
             save_db(db)
             return {"msg": "updated"}
     raise HTTPException(404)
@@ -161,34 +127,16 @@ def update_profile(p: ProfileSchema, u: dict = Depends(get_current_user)):
 @app.get("/get_user/{username}")
 def get_user_profile(username: str):
     db = load_db()
-    user = next((u for u in db["users"] if u["username"].lower() == username.lower()), None)
-    if not user:
-        raise HTTPException(404)
-    return {
-        "username": user["username"],
-        "avatar": user["avatar_data"],
-        "bio": user.get("bio", ""),
-        "instagram": user.get("instagram", ""),
-        "is_admin": user.get("is_admin", False)
-    }
+    user = next((u for u in db["users"] if u["username"] == username), None)
+    if not user: raise HTTPException(404)
+    return {"username": user["username"], "avatar": user["avatar_data"], "bio": user.get("bio", ""), "instagram": user.get("instagram", ""), "is_admin": user.get("is_admin", False)}
 
-class HangoutSchema(BaseModel):
-    title: str
-    location: str
-    event_time: str
-    max_people: int
-    image_data: Optional[str] = None
-
+class HangoutSchema(BaseModel): title: str; location: str; event_time: str; max_people: int; image_data: Optional[str] = None
 @app.post("/create_hangout/")
 def create_h(h: HangoutSchema, u: dict = Depends(get_current_user)):
     db = load_db()
     new_id = len(db["hangouts"]) + 1
-    new_hangout = {
-        "id": new_id, "title": h.title, "location": h.location, "event_time": h.event_time,
-        "max_people": h.max_people, "host_username": u["username"], "image_data": h.image_data,
-        "attendees": [{"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)}],
-        "messages": []
-    }
+    new_hangout = { "id": new_id, "title": h.title, "location": h.location, "event_time": h.event_time, "max_people": h.max_people, "host_username": u["username"], "image_data": h.image_data, "attendees": [{"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)}], "messages": [] }
     db["hangouts"].append(new_hangout)
     save_db(db)
     return {"msg": "ok"}
@@ -198,8 +146,7 @@ def join_h(id: int, u: dict = Depends(get_current_user)):
     db = load_db()
     for h in db["hangouts"]:
         if h["id"] == id:
-            if len(h["attendees"]) >= h["max_people"]:
-                raise HTTPException(400, "Full")
+            if len(h["attendees"]) >= h["max_people"]: raise HTTPException(400, "Full")
             if not any(a["username"] == u["username"] for a in h["attendees"]):
                 h["attendees"].append({"username": u["username"], "avatar": u["avatar_data"], "is_admin": u.get("is_admin", False)})
                 save_db(db)
@@ -218,13 +165,7 @@ def feed(u: dict = Depends(get_current_user)):
     db = load_db()
     results = []
     for h in db["hangouts"]:
-        results.append({
-            "id": h["id"], "title": h["title"], "location": h["location"],
-            "event_time": h.get("event_time", "Now"), "max_people": h.get("max_people", 5),
-            "host": h["host_username"], "image_data": h.get("image_data"),
-            "attendees": h["attendees"], "count": len(h["attendees"]),
-            "is_full": len(h["attendees"]) >= h.get("max_people", 5)
-        })
+        results.append({ "id": h["id"], "title": h["title"], "location": h["location"], "event_time": h.get("event_time", "Now"), "max_people": h.get("max_people", 5), "host": h["host_username"], "image_data": h.get("image_data"), "attendees": h["attendees"], "count": len(h["attendees"]), "is_full": len(h["attendees"]) >= h.get("max_people", 5) })
     return {"feed": results}
 
 @app.get("/chat_history/{hangout_id}")
@@ -233,10 +174,11 @@ def chat_hist(hangout_id: int):
     h = next((h for h in db["hangouts"] if h["id"] == hangout_id), None)
     return h["messages"] if h else []
 
-# --- PRIVATE DM LOGIC (FIXED PUSH) ---
+# --- PRIVATE DM LOGIC (IMAGES ADDED) ---
 class DMSchema(BaseModel):
     receiver: str
     text: str
+    image: Optional[str] = None
 
 @app.post("/send_dm")
 async def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
@@ -245,16 +187,15 @@ async def send_dm(dm: DMSchema, u: dict = Depends(get_current_user)):
         "sender": u["username"],
         "receiver": dm.receiver,
         "text": dm.text,
+        "image": dm.image,
         "timestamp": datetime.now().strftime("%H:%M")
     }
     db["dms"].append(msg_obj)
     save_db(db)
     
-    # PUSH TO RECEIVER (Real-time)
-    await manager.send_to_user(dm.receiver, {"type": "dm", "sender": u["username"], "text": dm.text})
-    
-    # PUSH BACK TO SENDER (So other devices see sent msg)
-    await manager.send_to_user(u["username"], {"type": "dm", "sender": u["username"], "text": dm.text})
+    payload = {"type": "dm", "sender": u["username"], "text": dm.text, "image": dm.image}
+    await manager.send_to_user(dm.receiver, payload)
+    await manager.send_to_user(u["username"], payload)
     
     return {"msg": "sent"}
 
@@ -270,7 +211,8 @@ def get_my_dms(u: dict = Depends(get_current_user)):
     for p_name, last_msg in partners.items():
         p_data = next((user for user in db["users"] if user["username"] == p_name), None)
         avatar = p_data["avatar_data"] if p_data else None
-        result.append({"partner": p_name, "avatar": avatar, "last_msg": last_msg["text"]})
+        preview = "📷 Image" if last_msg.get("image") and not last_msg["text"] else last_msg["text"]
+        result.append({"partner": p_name, "avatar": avatar, "last_msg": preview})
     return result
 
 @app.get("/dm_history/{partner}")
@@ -279,54 +221,46 @@ def dm_history(partner: str, u: dict = Depends(get_current_user)):
     msgs = [m for m in db["dms"] if (m["sender"] == u["username"] and m["receiver"] == partner) or (m["sender"] == partner and m["receiver"] == u["username"])]
     return msgs
 
+# --- WEBSOCKETS ---
 @app.websocket("/ws/me")
 async def ws_personal(websocket: WebSocket, token: str = Query(...)):
     try:
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-        except:
-            await websocket.close()
-            return
-        
+        try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); username = payload.get("sub")
+        except: await websocket.close(); return
         await manager.connect_user(websocket, username)
-        while True:
-            await websocket.receive_text()
-    except:
-        manager.disconnect_user(username)
+        while True: await websocket.receive_text()
+    except: manager.disconnect_user(websocket, username)
 
 @app.websocket("/ws/{hangout_id}")
 async def ws_endpoint(websocket: WebSocket, hangout_id: int, token: str = Query(...)):
     try:
-        try:
-            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-            username = payload.get("sub")
-        except:
-            await websocket.close()
-            return
+        try: payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]); username = payload.get("sub")
+        except: await websocket.close(); return
         db = load_db()
         user = next((u for u in db["users"] if u["username"] == username), None)
-        if not user:
-            await websocket.close()
-            return
+        if not user: await websocket.close(); return
         
         await manager.connect(websocket, hangout_id)
         while True:
-            data = await websocket.receive_text()
+            raw = await websocket.receive_text()
+            data = json.loads(raw) # Expecting JSON now
+            
+            msg_text = data.get("text", "")
+            msg_img = data.get("image", None)
             is_admin = user.get("is_admin", False)
+            
             db = load_db()
             for h in db["hangouts"]:
                 if h["id"] == hangout_id:
-                    h["messages"].append({"user": username, "avatar": user["avatar_data"], "text": data, "is_admin": is_admin})
+                    h["messages"].append({"user": username, "avatar": user["avatar_data"], "text": msg_text, "image": msg_img, "is_admin": is_admin})
                     save_db(db)
                     break
-            await manager.broadcast({"type": "msg", "user": username, "avatar": user["avatar_data"], "text": data, "is_admin": is_admin}, hangout_id)
-    except:
-        manager.disconnect(websocket, hangout_id)
+            
+            await manager.broadcast({"type": "msg", "user": username, "avatar": user["avatar_data"], "text": msg_text, "image": msg_img, "is_admin": is_admin}, hangout_id)
+    except: manager.disconnect(websocket, hangout_id)
 
 @app.get("/")
-def root():
-    return FileResponse("static/index.html")
+def root(): return FileResponse("static/index.html")
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
