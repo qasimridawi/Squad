@@ -1,7 +1,5 @@
 fastapi
 uvicorn
-sqlalchemy
-pydantic
-python-multipart
 pyjwt
-wsproto
+python-multipart
+websockets
