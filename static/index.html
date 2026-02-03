@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V39</title>
+    <title>Squad V40</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -26,24 +26,20 @@
         #user-badge { display: flex; align-items: center; gap: 10px; padding: 6px 12px; background: rgba(255,255,255,0.1); border-radius: 99px; border: 1px solid var(--glass-border); backdrop-filter: blur(10px); cursor: pointer; }
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
-        /* TOAST NOTIFICATION */
+        /* TOAST & STATUS */
         #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 20, 0.9); border: 1px solid #ec4899; padding: 12px 24px; border-radius: 99px; z-index: 4000; display: none; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideDown 0.3s forwards; }
         @keyframes slideDown { from { top: -50px; } to { top: 20px; } }
-
-        /* STATUS DOT */
         .status-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 5px; transition: 0.3s; }
         .status-dot.green { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
         .status-dot.red { background: #ef4444; }
 
-        .glowing-pin { background: #ec4899; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899; animation: pulsePin 2s infinite; }
-        @keyframes pulsePin { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
-        .admin-badge { color: #3b82f6; display: inline-flex; margin-left: 4px; font-size: 14px; }
-
+        /* CONTENT */
         #content-area { flex: 1; overflow-y: auto; padding-bottom: 140px; }
         #map-view { height: 100vh; width: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
         #feed-view { display: block; padding: 20px; position: relative; z-index: 2; }
         #profile-view, #inbox-view { display: none; padding: 20px; z-index: 2; }
 
+        /* CARDS */
         .card { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 28px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(25px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
         .card:active { transform: scale(0.98); }
         .card-header { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -53,7 +49,11 @@
         .media-content { width: 100%; border-radius: 20px; height: 220px; object-fit: cover; display: none; margin-top: 15px; border: 1px solid var(--glass-border); }
         .media-content.show { display: block; }
         .join-btn { background: #000; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 28px; border-radius: 99px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-        
+        .glowing-pin { background: #ec4899; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899; animation: pulsePin 2s infinite; }
+        @keyframes pulsePin { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
+        .admin-badge { color: #3b82f6; display: inline-flex; margin-left: 4px; font-size: 14px; }
+
+        /* INBOX */
         .inbox-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
         .inbox-tab { flex: 1; text-align: center; padding: 12px; border-radius: 16px; background: rgba(255,255,255,0.05); color: #888; font-weight: 600; cursor: pointer; }
         .inbox-tab.active { background: #ec4899; color: white; box-shadow: 0 5px 20px rgba(236, 72, 153, 0.4); }
@@ -64,6 +64,7 @@
         .inbox-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; display: flex; align-items: center; }
         .inbox-meta { font-size: 13px; opacity: 0.6; }
 
+        /* PROFILE */
         .profile-header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
         .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ec4899; box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
         .profile-name { font-size: 26px; font-weight: 800; }
@@ -73,6 +74,7 @@
         .insta-btn { display: flex; align-items: center; gap: 10px; background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); padding: 12px 20px; border-radius: 16px; color: white; font-weight: 600; text-decoration: none; width: fit-content; margin-top: 10px; }
         .edit-input { background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; color: white; width: 100%; font-family: inherit; margin-bottom: 10px; }
 
+        /* DOCK */
         .dock-container { position: fixed; bottom: 30px; left: 0; width: 100%; display: flex; justify-content: center; z-index: 100; pointer-events: none; }
         .glass-dock { pointer-events: auto; background: rgba(20, 20, 20, 0.65); backdrop-filter: blur(20px) saturate(180%); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 35px; padding: 10px 25px; display: flex; gap: 25px; align-items: center; box-shadow: 0 15px 40px rgba(0,0,0,0.5); }
         .dock-icon { width: 50px; height: 50px; border-radius: 16px; display: flex; justify-content: center; align-items: center; font-size: 26px; cursor: pointer; transition: 0.2s; background: rgba(255,255,255,0.05); }
@@ -80,35 +82,53 @@
         .fab { position: absolute; bottom: 85px; left: 50%; transform: translateX(-50%); width: 60px; height: 60px; background: #000; border: 1px solid rgba(255,255,255,0.3); border-radius: 50%; color: white; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.6); cursor: pointer; pointer-events: auto; z-index: 102; }
         .fab svg { width: 32px; height: 32px; }
 
+        /* CHAT UI */
         #chat-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 3000; display: none; flex-direction: column; }
         .chat-nav { padding: 20px; display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); border-bottom: 1px solid var(--glass-border); }
-        .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); }
-        .chat-bar { padding: 15px 20px; padding-bottom: 35px; background: #000; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
-        .input-box { flex: 1; background: rgba(255,255,255,0.1); border: none; color: white; padding: 14px 20px; border-radius: 99px; outline: none; font-size: 16px; }
-        .icon-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 22px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); padding-bottom: 120px; }
+        
+        /* THE NEW GLASS CAPSULE INPUT */
+        .chat-bar { 
+            position: fixed; bottom: 30px; left: 15px; right: 15px;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 99px;
+            padding: 8px 12px;
+            display: flex; gap: 8px; align-items: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            z-index: 3001;
+        }
+        .input-box { flex: 1; background: transparent; border: none; color: white; padding: 12px; font-size: 16px; outline: none; }
+        .input-box::placeholder { color: rgba(255,255,255,0.4); }
+        
+        .icon-btn { 
+            width: 42px; height: 42px; border-radius: 50%; 
+            background: rgba(255,255,255,0.08); border: none; 
+            color: white; display: flex; justify-content: center; align-items: center; 
+            cursor: pointer; transition: 0.2s; flex-shrink: 0;
+        }
         .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
-        .icon-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
-        .bubble { padding: 14px 20px; border-radius: 22px; max-width: 80%; font-size: 15px; margin-bottom: 10px; }
+        .icon-btn.recording { background: #ef4444; animation: pulse 1s infinite; box-shadow: 0 0 15px #ef4444; }
+        .icon-btn.send { background: linear-gradient(135deg, #ec4899, #7c3aed); box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4); }
+        
+        /* SVG ICONS */
+        .icon-svg { width: 20px; height: 20px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+
+        .bubble { padding: 14px 20px; border-radius: 22px; max-width: 80%; font-size: 15px; margin-bottom: 10px; line-height: 1.4; word-wrap: break-word; }
         .bubble.them { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
         .bubble.me { background: linear-gradient(135deg, #ec4899, #8b5cf6); align-self: flex-end; border-bottom-right-radius: 4px; }
         .chat-img { max-width: 200px; border-radius: 12px; margin-top: 5px; display: block; border: 1px solid rgba(255,255,255,0.1); }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
         .modal-card { width: 85%; max-width: 360px; background: #0a0a0a; border: 1px solid var(--glass-border); border-radius: 36px; padding: 36px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px rgba(0,0,0,0.9); }
-        .input-field { background: rgba(255,255,255,0.05); border: 1px solid var(--glass-border); color: white; padding: 18px; border-radius: 18px; width: 100%; box-sizing: border-box; font-size: 16px; outline:none; }
         .black-btn { background: #000; color: white; padding: 18px; border-radius: 99px; border: 1px solid rgba(255,255,255,0.2); font-weight: 600; width: 100%; cursor: pointer; font-size: 16px; }
-        .file-label { display:block; text-align:center; padding:15px; border:1px dashed rgba(255,255,255,0.2); border-radius:16px; color:rgba(255,255,255,0.5); cursor:pointer; font-size: 14px; }
-        .attendees-row { display: flex; align-items: center; margin-top: 10px; }
-        .attendee-face { width: 32px; height: 32px; border-radius: 50%; border: 2px solid #111; background: #333; object-fit: cover; margin-right: -10px; }
         @keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.8; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body>
 
-    <div id="toast">
-        <div style="font-size:20px;">💬</div>
-        <div id="toast-text" style="color:white; font-size:14px; font-weight:600;">New message</div>
-    </div>
+    <div id="toast"><div style="font-size:20px;">💬</div><div id="toast-text" style="color:white; font-size:14px; font-weight:600;">New message</div></div>
 
     <div id="login-modal" class="modal">
         <div class="modal-card animate">
@@ -119,8 +139,8 @@
                 <img id="reg-avatar-preview" style="width:90px; height:90px; border-radius:50%; object-fit:cover; display:none; margin:0 auto; border:2px solid #ec4899;">
                 <div id="avatar-placeholder" style="width:90px; height:90px; border-radius:50%; background:rgba(255,255,255,0.05); margin:0 auto; display:flex; justify-content:center; align-items:center; font-size:28px;">📷</div>
             </label>
-            <input type="text" id="login-user" class="input-field" placeholder="Username">
-            <input type="password" id="login-pass" class="input-field" placeholder="Password">
+            <input type="text" id="login-user" class="input-field" placeholder="Username" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:18px;border-radius:18px;width:100%;color:white;outline:none;">
+            <input type="password" id="login-pass" class="input-field" placeholder="Password" style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);padding:18px;border-radius:18px;width:100%;color:white;outline:none;">
             <button class="black-btn" onclick="login()">Log in</button>
             <div style="text-align: center; opacity: 0.5; font-size: 14px; margin-top: 5px; cursor: pointer;" onclick="register()">Create an account</div>
         </div>
@@ -129,11 +149,11 @@
     <div id="create-modal" class="modal" style="display: none;">
         <div class="modal-card animate">
             <div style="display:flex; justify-content:space-between;"><h3>New Plan</h3><span onclick="document.getElementById('create-modal').style.display='none'" style="cursor:pointer; opacity:0.5;">✕</span></div>
-            <input type="text" id="new-title" class="input-field" placeholder="What are we doing?">
-            <input type="text" id="new-loc" class="input-field" placeholder="Where?">
+            <input type="text" id="new-title" class="edit-input" placeholder="What are we doing?">
+            <input type="text" id="new-loc" class="edit-input" placeholder="Where?">
             <div style="display:flex; gap:10px;">
-                <input type="time" id="new-time" class="input-field" style="color-scheme:dark;">
-                <input type="number" id="new-max" class="input-field" placeholder="Max" value="4">
+                <input type="time" id="new-time" class="edit-input" style="color-scheme:dark;">
+                <input type="number" id="new-max" class="edit-input" placeholder="Max" value="4">
             </div>
             <label class="file-label">📷 Cover Image <input type="file" id="new-img" style="display: none;" accept="image/*"></label>
             <button class="black-btn" onclick="submitCreate()">Post Plan</button>
@@ -151,15 +171,22 @@
             </div>
         </div>
         <div id="chat-body" class="chat-body"></div>
+        
         <div class="chat-bar">
-            <label class="icon-btn" style="display:flex; cursor:pointer;">
-                📎
+            <label class="icon-btn">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>
                 <input type="file" id="chat-img-input" style="display:none;" accept="image/*" onchange="handleImageSelect(this)">
             </label>
             
-            <button class="icon-btn" id="mic-btn" onclick="toggleRecord()">🎙️</button>
             <input id="chat-input" class="input-box" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
-            <button class="icon-btn send" onclick="send()">🚀</button>
+            
+            <button class="icon-btn" id="mic-btn" onclick="toggleRecord()">
+                <svg class="icon-svg" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </button>
+            
+            <button class="icon-btn send" onclick="send()">
+                <svg class="icon-svg" viewBox="0 0 24 24" style="stroke:white;"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            </button>
         </div>
     </div>
 
@@ -188,9 +215,7 @@
         let currentAvatar = localStorage.getItem('squad_avatar');
         let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let map = null; let markers = []; let currentSocket = null; let activeDM = null;
-        let personalSocket = null;
-        let heartbeatInterval = null;
-        let selectedChatImage = null; // Store pending image
+        let personalSocket = null; let heartbeatInterval = null;
 
         if (!token) document.getElementById('login-modal').style.display = 'flex'; 
         else { updateBadge(); loadFeed(); initPersonalSocket(); }
@@ -216,10 +241,9 @@
         async function handleImageSelect(input) {
             const file = input.files[0];
             if (!file) return;
-            // Immediate send logic or preview? Let's send immediately for now
             const resized = await resizeImage(file, 600, 600);
-            send(resized); // Pass image data to send function
-            input.value = ''; // Reset
+            send(resized);
+            input.value = '';
         }
 
         function showToast(text) {
@@ -334,7 +358,6 @@
         function renderMsg(m) {
             const isMe = m.user === currentUser;
             const badge = m.is_admin ? '🔹' : '';
-            // RENDER TEXT OR IMAGE
             let content = '';
             if (m.image) content += `<img src="${m.image}" class="chat-img">`;
             if (m.text) content += `<div>${m.text}</div>`;
@@ -348,21 +371,12 @@
         async function send(imageData = null) {
             const input = document.getElementById('chat-input');
             const txt = input.value;
-            
             if(!txt && !imageData) return;
-            
-            const payload = { text: txt, image: imageData }; // Construct payload
-
+            const payload = { text: txt, image: imageData }; 
             if (activeDM) {
-                // Private DM
-                await fetch('/send_dm', { 
-                    method: 'POST', 
-                    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, 
-                    body: JSON.stringify({receiver: activeDM, ...payload}) 
-                });
+                await fetch('/send_dm', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify({receiver: activeDM, ...payload}) });
                 renderMsg({user: currentUser, ...payload});
             } else {
-                // Group Chat
                 if(currentSocket) currentSocket.send(JSON.stringify(payload));
             }
             input.value = '';
