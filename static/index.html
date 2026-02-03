@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V28</title>
+    <title>Squad V29</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -30,6 +30,7 @@
         #map-view { height: 100vh; width: 100%; display: none; position: absolute; top: 0; left: 0; z-index: 1; }
         #feed-view { display: block; padding: 20px; position: relative; z-index: 2; }
         #profile-view { display: none; padding: 20px; z-index: 2; }
+        #inbox-view { display: none; padding: 20px; z-index: 2; }
 
         .card { background: rgba(0, 0, 0, 0.3); border: 1px solid var(--glass-border); border-radius: 28px; padding: 24px; margin-bottom: 20px; backdrop-filter: blur(25px); box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
         .card:active { transform: scale(0.98); }
@@ -41,6 +42,15 @@
         .media-content.show { display: block; }
         .join-btn { background: #000; color: white; border: 1px solid rgba(255,255,255,0.2); padding: 12px 28px; border-radius: 99px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 20px rgba(0,0,0,0.4); }
         
+        /* INBOX STYLES */
+        .inbox-header { font-size: 28px; font-weight: 800; margin-bottom: 20px; padding-left: 10px; }
+        .inbox-item { display: flex; align-items: center; gap: 15px; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 20px; margin-bottom: 10px; border: 1px solid var(--glass-border); transition: 0.2s; }
+        .inbox-item:active { background: rgba(255,255,255,0.1); }
+        .inbox-icon { width: 50px; height: 50px; border-radius: 15px; background: linear-gradient(135deg, #ec4899, #7c3aed); display: flex; justify-content: center; align-items: center; font-size: 24px; }
+        .inbox-info { flex: 1; }
+        .inbox-title { font-weight: 700; font-size: 16px; margin-bottom: 4px; }
+        .inbox-meta { font-size: 13px; opacity: 0.6; }
+
         /* PROFILE STYLES */
         .profile-header { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 20px; }
         .profile-pic-lg { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #ec4899; box-shadow: 0 0 30px rgba(236, 72, 153, 0.4); }
@@ -127,6 +137,7 @@
         <div id="feed-view"></div>
         <div id="map-view"></div>
         <div id="profile-view"></div>
+        <div id="inbox-view"></div>
     </div>
 
     <div class="dock-container">
@@ -135,7 +146,7 @@
         </div>
         <div class="glass-dock">
             <div class="dock-icon active" onclick="switchTab('feed')" id="nav-feed">🏠</div>
-            <div class="dock-icon" onclick="switchTab('inbox')">💬</div>
+            <div class="dock-icon" onclick="switchTab('inbox')" id="nav-inbox">💬</div>
             <div class="dock-icon" onclick="switchTab('map')" id="nav-map">🗺️</div>
             <div class="dock-icon" onclick="loadProfile(currentUser)" id="nav-profile">👤</div>
         </div>
@@ -145,11 +156,11 @@
         let token = localStorage.getItem('squad_token');
         let currentUser = localStorage.getItem('squad_user');
         let currentAvatar = localStorage.getItem('squad_avatar');
-        let currentBio = localStorage.getItem('squad_bio') || "";
-        let currentInsta = localStorage.getItem('squad_insta') || "";
+        let isAdmin = localStorage.getItem('squad_admin') === 'true';
         let map = null;
         let markers = [];
         let currentSocket = null; 
+        let globalFeed = []; // Store feed to filter for inbox
 
         if (!token) document.getElementById('login-modal').style.display = 'flex'; else { updateBadge(); loadFeed(); }
 
@@ -157,58 +168,63 @@
 
         function switchTab(tab) {
             document.querySelectorAll('.dock-icon').forEach(t => t.classList.remove('active'));
-            if(tab === 'feed') document.getElementById('nav-feed').classList.add('active');
-            if(tab === 'map') document.getElementById('nav-map').classList.add('active');
-            if(tab === 'profile') document.getElementById('nav-profile').classList.add('active');
+            document.getElementById(`nav-${tab}`).classList.add('active');
             
             document.getElementById('feed-view').style.display = tab === 'feed' ? 'block' : 'none';
             document.getElementById('map-view').style.display = tab === 'map' ? 'block' : 'none';
             document.getElementById('profile-view').style.display = tab === 'profile' ? 'block' : 'none';
+            document.getElementById('inbox-view').style.display = tab === 'inbox' ? 'block' : 'none';
             
             if(tab === 'map') { setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 100); }
+            if(tab === 'inbox') loadInbox();
+        }
+
+        function loadInbox() {
+            const div = document.getElementById('inbox-view');
+            // Filter globalFeed for events where I am an attendee
+            const myEvents = globalFeed.filter(h => h.attendees.some(a => a.username === currentUser));
+            
+            if (myEvents.length === 0) {
+                div.innerHTML = `<div class="inbox-header">My Plans</div><div style="opacity:0.5; text-align:center; margin-top:50px;">You haven't joined any plans yet.<br><br>Go back to home 🏠 and join one!</div>`;
+                return;
+            }
+
+            let html = `<div class="inbox-header">My Plans</div>`;
+            myEvents.forEach((h, i) => {
+                html += `
+                <div class="inbox-item animate" style="animation-delay: ${i*0.1}s" onclick="openChat(${h.id}, '${h.title}')">
+                    <div class="inbox-icon">🎉</div>
+                    <div class="inbox-info">
+                        <div class="inbox-title">${h.title}</div>
+                        <div class="inbox-meta">📍 ${h.location} • ⏰ ${h.event_time}</div>
+                    </div>
+                    <div style="font-size:20px; opacity:0.5;">›</div>
+                </div>`;
+            });
+            div.innerHTML = html;
         }
 
         async function loadProfile(username) {
             switchTab('profile');
             const div = document.getElementById('profile-view');
             div.innerHTML = '<div style="text-align:center; margin-top:50px;">Loading...</div>';
-
             const res = await fetch(`/get_user/${username}`, { headers: {'Authorization': `Bearer ${token}`} });
             if(!res.ok) return;
             const u = await res.json();
             const isMe = (username === currentUser);
-
             div.innerHTML = `
                 <div class="profile-header animate">
                     <img src="${u.avatar||'https://via.placeholder.com/100'}" class="profile-pic-lg">
                     <div class="profile-name">${u.username}</div>
                     ${u.instagram ? `<a href="https://instagram.com/${u.instagram.replace('@','')}" target="_blank" class="insta-btn">📸 Instagram</a>` : ''}
                 </div>
-                
-                <div class="profile-section animate" style="animation-delay: 0.1s;">
-                    <div class="section-label">About</div>
-                    ${isMe ? `<textarea id="edit-bio" class="edit-input" rows="3" placeholder="Write a short bio...">${u.bio||''}</textarea>` : `<div class="bio-text">${u.bio || "No bio yet."}</div>`}
-                </div>
-
-                ${isMe ? `
-                <div class="profile-section animate" style="animation-delay: 0.2s;">
-                    <div class="section-label">Socials</div>
-                    <input id="edit-insta" type="text" class="edit-input" placeholder="Instagram Username (e.g. @qasim)" value="${u.instagram||''}">
-                </div>
-                <button class="black-btn animate" style="animation-delay: 0.3s;" onclick="saveProfile()">Save Profile</button>
-                <div style="text-align:center; margin-top:20px; color:#ef4444; opacity:0.7; font-size:14px; cursor:pointer;" onclick="logout()">Log Out</div>
-                ` : ''}
-            `;
+                <div class="profile-section animate" style="animation-delay: 0.1s;"><div class="section-label">About</div>${isMe ? `<textarea id="edit-bio" class="edit-input" rows="3" placeholder="Write a short bio...">${u.bio||''}</textarea>` : `<div class="bio-text">${u.bio || "No bio yet."}</div>`}</div>
+                ${isMe ? `<div class="profile-section animate" style="animation-delay: 0.2s;"><div class="section-label">Socials</div><input id="edit-insta" type="text" class="edit-input" placeholder="Instagram Username" value="${u.instagram||''}"></div><button class="black-btn animate" style="animation-delay: 0.3s;" onclick="saveProfile()">Save Profile</button><div style="text-align:center; margin-top:20px; color:#ef4444; opacity:0.7; font-size:14px; cursor:pointer;" onclick="logout()">Log Out</div>` : ''}`;
         }
 
         async function saveProfile() {
-            const b = document.getElementById('edit-bio').value;
-            const i = document.getElementById('edit-insta').value;
-            await fetch('/update_profile', {
-                method: 'POST',
-                headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`},
-                body: JSON.stringify({bio: b, instagram: i})
-            });
+            const b = document.getElementById('edit-bio').value; const i = document.getElementById('edit-insta').value;
+            await fetch('/update_profile', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify({bio: b, instagram: i}) });
             alert("Saved!");
         }
 
@@ -220,19 +236,20 @@
             markers.forEach(m => map.removeLayer(m)); markers = [];
             data.feed.forEach(h => { markers.push(L.marker([55.7558 + (Math.random()-0.5)*0.1, 37.6173 + (Math.random()-0.5)*0.1]).addTo(map).bindPopup(`<b>${h.title}</b><br>⏰ ${h.event_time}`)); });
         }
+        
         async function loadFeed() {
             if(!token) return;
             const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
             if(res.status === 401) logout();
             const data = await res.json();
+            globalFeed = data.feed; // STORE FOR INBOX
             const div = document.getElementById('feed-view');
             div.innerHTML = '';
             data.feed.reverse().forEach((h, index) => {
                 const isHost = h.host === currentUser;
                 const canDelete = isHost || isAdmin;
                 let faces = '';
-                h.attendees.forEach(a => { faces += `<img src="${a.avatar||''}" class="attendee-face" onclick="loadProfile('${a.username}')">`; }); // Added OnClick
-
+                h.attendees.forEach(a => { faces += `<img src="${a.avatar||''}" class="attendee-face" onclick="loadProfile('${a.username}')">`; }); 
                 const card = document.createElement('div');
                 card.className = 'card animate'; card.style.animationDelay = `${index * 0.1}s`;
                 card.innerHTML = `
