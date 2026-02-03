@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Squad V38</title>
+    <title>Squad V39</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#000000">
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;700&display=swap" rel="stylesheet">
@@ -27,13 +27,7 @@
         .tiny-avatar { width: 28px; height: 28px; border-radius: 50%; background: #333; object-fit: cover; }
 
         /* TOAST NOTIFICATION */
-        #toast {
-            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-            background: rgba(20, 20, 20, 0.9); border: 1px solid #ec4899;
-            padding: 12px 24px; border-radius: 99px; z-index: 4000;
-            display: none; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            animation: slideDown 0.3s forwards;
-        }
+        #toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(20, 20, 20, 0.9); border: 1px solid #ec4899; padding: 12px 24px; border-radius: 99px; z-index: 4000; display: none; align-items: center; gap: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); animation: slideDown 0.3s forwards; }
         @keyframes slideDown { from { top: -50px; } to { top: 20px; } }
 
         /* STATUS DOT */
@@ -41,7 +35,6 @@
         .status-dot.green { background: #22c55e; box-shadow: 0 0 10px #22c55e; }
         .status-dot.red { background: #ef4444; }
 
-        /* PINS */
         .glowing-pin { background: #ec4899; width: 20px; height: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 15px #ec4899, 0 0 30px #ec4899; animation: pulsePin 2s infinite; }
         @keyframes pulsePin { 0% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.3); opacity: 0.7; } 100% { transform: scale(1); opacity: 1; } }
         .admin-badge { color: #3b82f6; display: inline-flex; margin-left: 4px; font-size: 14px; }
@@ -92,11 +85,13 @@
         .chat-body { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; background: radial-gradient(circle at center, #0a0a0a 0%, #000000 100%); }
         .chat-bar { padding: 15px 20px; padding-bottom: 35px; background: #000; border-top: 1px solid var(--glass-border); display: flex; gap: 10px; align-items: center; }
         .input-box { flex: 1; background: rgba(255,255,255,0.1); border: none; color: white; padding: 14px 20px; border-radius: 99px; outline: none; font-size: 16px; }
-        .icon-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 22px; display: flex; justify-content: center; align-items: center; cursor: pointer; }
+        .icon-btn { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); border: none; color: white; font-size: 22px; display: flex; justify-content: center; align-items: center; cursor: pointer; transition: 0.2s; }
+        .icon-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.2); }
         .icon-btn.recording { background: #ef4444; animation: pulse 1s infinite; }
         .bubble { padding: 14px 20px; border-radius: 22px; max-width: 80%; font-size: 15px; margin-bottom: 10px; }
         .bubble.them { background: rgba(255,255,255,0.1); align-self: flex-start; border-bottom-left-radius: 4px; }
         .bubble.me { background: linear-gradient(135deg, #ec4899, #8b5cf6); align-self: flex-end; border-bottom-right-radius: 4px; }
+        .chat-img { max-width: 200px; border-radius: 12px; margin-top: 5px; display: block; border: 1px solid rgba(255,255,255,0.1); }
 
         .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); backdrop-filter: blur(15px); z-index: 2000; display: flex; justify-content: center; align-items: center; }
         .modal-card { width: 85%; max-width: 360px; background: #0a0a0a; border: 1px solid var(--glass-border); border-radius: 36px; padding: 36px; display: flex; flex-direction: column; gap: 16px; box-shadow: 0 40px 80px rgba(0,0,0,0.9); }
@@ -157,6 +152,11 @@
         </div>
         <div id="chat-body" class="chat-body"></div>
         <div class="chat-bar">
+            <label class="icon-btn" style="display:flex; cursor:pointer;">
+                📎
+                <input type="file" id="chat-img-input" style="display:none;" accept="image/*" onchange="handleImageSelect(this)">
+            </label>
+            
             <button class="icon-btn" id="mic-btn" onclick="toggleRecord()">🎙️</button>
             <input id="chat-input" class="input-box" placeholder="Message..." onkeypress="if(event.key==='Enter') send()">
             <button class="icon-btn send" onclick="send()">🚀</button>
@@ -190,49 +190,36 @@
         let map = null; let markers = []; let currentSocket = null; let activeDM = null;
         let personalSocket = null;
         let heartbeatInterval = null;
+        let selectedChatImage = null; // Store pending image
 
         if (!token) document.getElementById('login-modal').style.display = 'flex'; 
         else { updateBadge(); loadFeed(); initPersonalSocket(); }
 
-        // --- HEARTBEAT & NOTIFICATION LOGIC ---
         function initPersonalSocket() {
             if (personalSocket && personalSocket.readyState === WebSocket.OPEN) return;
-            
             const proto = location.protocol === 'https:' ? 'wss' : 'ws';
             personalSocket = new WebSocket(`${proto}://${location.host}/ws/me?token=${token}`);
-            
             personalSocket.onopen = () => {
-                console.log("Connected to DM Stream");
                 updateConnectionStatus(true);
-                // Start Heartbeat
                 if(heartbeatInterval) clearInterval(heartbeatInterval);
-                heartbeatInterval = setInterval(() => {
-                    if(personalSocket.readyState === WebSocket.OPEN) personalSocket.send("ping");
-                }, 20000); // 20s Ping
+                heartbeatInterval = setInterval(() => { if(personalSocket.readyState === WebSocket.OPEN) personalSocket.send("ping"); }, 20000);
             };
-
             personalSocket.onmessage = (e) => {
                 const msg = JSON.parse(e.data);
-                
-                // Show Toast Notification
-                if(msg.type === "dm" && msg.sender !== currentUser) {
-                    showToast(`Message from ${msg.sender}`);
-                }
-
-                // If chat is open, render
-                if (msg.type === "dm" && activeDM && activeDM.toLowerCase() === msg.sender.toLowerCase()) {
-                    renderMsg({user: msg.sender, text: msg.text});
-                } 
-                
-                if (msg.type === "dm") {
-                    document.getElementById('nav-inbox').style.color = '#ec4899';
-                }
+                if(msg.type === "dm" && msg.sender !== currentUser) showToast(`Message from ${msg.sender}`);
+                if (msg.type === "dm" && activeDM && activeDM.toLowerCase() === msg.sender.toLowerCase()) { renderMsg(msg); } 
+                if (msg.type === "dm") document.getElementById('nav-inbox').style.color = '#ec4899';
             };
+            personalSocket.onclose = () => { updateConnectionStatus(false); setTimeout(initPersonalSocket, 3000); };
+        }
 
-            personalSocket.onclose = () => {
-                updateConnectionStatus(false);
-                setTimeout(initPersonalSocket, 3000); 
-            };
+        async function handleImageSelect(input) {
+            const file = input.files[0];
+            if (!file) return;
+            // Immediate send logic or preview? Let's send immediately for now
+            const resized = await resizeImage(file, 600, 600);
+            send(resized); // Pass image data to send function
+            input.value = ''; // Reset
         }
 
         function showToast(text) {
@@ -245,10 +232,7 @@
         function updateConnectionStatus(isOnline) {
             const dot = document.getElementById('conn-dot');
             const txt = document.getElementById('conn-text');
-            if(dot && txt) {
-                dot.className = `status-dot ${isOnline ? 'green' : 'red'}`;
-                txt.innerText = isOnline ? 'Online' : 'Reconnecting...';
-            }
+            if(dot && txt) { dot.className = `status-dot ${isOnline ? 'green' : 'red'}`; txt.innerText = isOnline ? 'Online' : 'Reconnecting...'; }
         }
 
         function updateBadge() { document.getElementById('my-name').innerText = currentUser; document.getElementById('my-avatar').src = currentAvatar || ''; }
@@ -259,38 +243,24 @@
             document.querySelectorAll('#content-area > div').forEach(d => d.style.display='none');
             document.getElementById(`${tab}-view`).style.display = 'block';
             if(tab === 'map') { setTimeout(() => { if(!map) initMap(); else map.invalidateSize(); }, 100); }
-            if(tab === 'inbox') {
-                document.getElementById('nav-inbox').style.color = 'white'; 
-                loadInbox('plans');
-            }
+            if(tab === 'inbox') { document.getElementById('nav-inbox').style.color = 'white'; loadInbox('plans'); }
         }
 
         async function loadInbox(type) {
             const div = document.getElementById('inbox-view');
-            div.innerHTML = `
-                <div class="inbox-tabs">
-                    <div class="inbox-tab ${type==='plans'?'active':''}" onclick="loadInbox('plans')">Plans</div>
-                    <div class="inbox-tab ${type==='dms'?'active':''}" onclick="loadInbox('dms')">Messages</div>
-                </div>
-                <div id="inbox-list">Loading...</div>
-            `;
+            div.innerHTML = `<div class="inbox-tabs"><div class="inbox-tab ${type==='plans'?'active':''}" onclick="loadInbox('plans')">Plans</div><div class="inbox-tab ${type==='dms'?'active':''}" onclick="loadInbox('dms')">Messages</div></div><div id="inbox-list">Loading...</div>`;
             const list = document.getElementById('inbox-list');
-            
             if (type === 'plans') {
                 const res = await fetch('/hangouts/', { headers: {'Authorization': `Bearer ${token}`} });
                 const data = await res.json();
                 const myEvents = data.feed.filter(h => h.attendees.some(a => a.username === currentUser));
                 list.innerHTML = myEvents.length ? '' : '<div style="opacity:0.5;text-align:center;margin-top:20px;">No plans joined.</div>';
-                myEvents.forEach(h => {
-                    list.innerHTML += `<div class="inbox-item" onclick="openChat(${h.id}, '${h.title}')"><div class="inbox-icon">🎉</div><div class="inbox-info"><div class="inbox-title">${h.title}</div><div class="inbox-meta">📍 ${h.location}</div></div></div>`;
-                });
+                myEvents.forEach(h => { list.innerHTML += `<div class="inbox-item" onclick="openChat(${h.id}, '${h.title}')"><div class="inbox-icon">🎉</div><div class="inbox-info"><div class="inbox-title">${h.title}</div><div class="inbox-meta">📍 ${h.location}</div></div></div>`; });
             } else {
                 const res = await fetch('/my_dms', { headers: {'Authorization': `Bearer ${token}`} });
                 const dms = await res.json();
                 list.innerHTML = dms.length ? '' : '<div style="opacity:0.5;text-align:center;margin-top:20px;">No messages yet.</div>';
-                dms.forEach(d => {
-                    list.innerHTML += `<div class="inbox-item" onclick="openDM('${d.partner}')"><img src="${d.avatar||''}" class="inbox-icon" style="object-fit:cover"><div class="inbox-info"><div class="inbox-title">${d.partner}</div><div class="inbox-meta">${d.last_msg}</div></div></div>`;
-                });
+                dms.forEach(d => { list.innerHTML += `<div class="inbox-item" onclick="openDM('${d.partner}')"><img src="${d.avatar||''}" class="inbox-icon" style="object-fit:cover"><div class="inbox-info"><div class="inbox-title">${d.partner}</div><div class="inbox-meta">${d.last_msg}</div></div></div>`; });
             }
         }
 
@@ -302,14 +272,7 @@
             const u = await res.json();
             const isMe = (username === currentUser);
             const badge = u.is_admin ? '<svg class="admin-badge" width="18" height="18" viewBox="0 0 24 24" fill="#3b82f6"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>' : '';
-            div.innerHTML = `
-                <div class="profile-header animate">
-                    <img src="${u.avatar||''}" class="profile-pic-lg">
-                    <div class="profile-name" style="display:flex;align-items:center;">${u.username} ${badge}</div>
-                    ${!isMe ? `<button class="join-btn" onclick="openDM('${u.username}')">💬 Message</button>` : ''}
-                </div>
-                <div class="profile-section animate"><div class="section-label">About</div>${isMe ? `<textarea id="edit-bio" class="edit-input" rows="3">${u.bio}</textarea>` : `<div class="bio-text">${u.bio}</div>`}</div>
-                ${isMe ? `<div class="profile-section animate"><div class="section-label">Socials</div><input id="edit-insta" type="text" class="edit-input" value="${u.instagram}"></div><button class="black-btn" onclick="saveProfile()">Save</button><div style="text-align:center;margin-top:20px;cursor:pointer;opacity:0.6" onclick="logout()">Log Out</div>` : ''}`;
+            div.innerHTML = `<div class="profile-header animate"><img src="${u.avatar||''}" class="profile-pic-lg"><div class="profile-name" style="display:flex;align-items:center;">${u.username} ${badge}</div>${!isMe ? `<button class="join-btn" onclick="openDM('${u.username}')">💬 Message</button>` : ''}</div><div class="profile-section animate"><div class="section-label">About</div>${isMe ? `<textarea id="edit-bio" class="edit-input" rows="3">${u.bio}</textarea>` : `<div class="bio-text">${u.bio}</div>`}</div>${isMe ? `<div class="profile-section animate"><div class="section-label">Socials</div><input id="edit-insta" type="text" class="edit-input" value="${u.instagram}"></div><button class="black-btn" onclick="saveProfile()">Save</button><div style="text-align:center;margin-top:20px;cursor:pointer;opacity:0.6" onclick="logout()">Log Out</div>` : ''}`;
         }
 
         async function saveProfile() {
@@ -360,7 +323,7 @@
             setupChatUI(partner);
             const res = await fetch(`/dm_history/${partner}`, { headers: {'Authorization': `Bearer ${token}`} });
             const msgs = await res.json();
-            msgs.forEach(m => renderMsg({user: m.sender, text: m.text})); 
+            msgs.forEach(m => renderMsg(m)); 
         }
 
         function setupChatUI(title) {
@@ -371,21 +334,38 @@
         function renderMsg(m) {
             const isMe = m.user === currentUser;
             const badge = m.is_admin ? '🔹' : '';
-            const html = `<div class="bubble ${isMe ? 'me' : 'them'}">${!isMe ? `<div style="font-size:10px;opacity:0.6">${m.user} ${badge}</div>` : ''}${m.text.startsWith('data:audio') ? `<audio controls src="${m.text}"></audio>` : m.text}</div>`;
+            // RENDER TEXT OR IMAGE
+            let content = '';
+            if (m.image) content += `<img src="${m.image}" class="chat-img">`;
+            if (m.text) content += `<div>${m.text}</div>`;
+            if (m.text && m.text.startsWith('data:audio')) content = `<audio controls src="${m.text}"></audio>`;
+
+            const html = `<div class="bubble ${isMe ? 'me' : 'them'}">${!isMe ? `<div style="font-size:10px;opacity:0.6">${m.user} ${badge}</div>` : ''}${content}</div>`;
             document.getElementById('chat-body').insertAdjacentHTML('beforeend', html);
             document.getElementById('chat-body').scrollTop = document.getElementById('chat-body').scrollHeight;
         }
 
-        async function send() {
-            const txt = document.getElementById('chat-input').value;
-            if(!txt) return;
+        async function send(imageData = null) {
+            const input = document.getElementById('chat-input');
+            const txt = input.value;
+            
+            if(!txt && !imageData) return;
+            
+            const payload = { text: txt, image: imageData }; // Construct payload
+
             if (activeDM) {
-                await fetch('/send_dm', { method: 'POST', headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, body: JSON.stringify({receiver: activeDM, text: txt}) });
-                renderMsg({user: currentUser, text: txt});
+                // Private DM
+                await fetch('/send_dm', { 
+                    method: 'POST', 
+                    headers: {'Content-Type':'application/json', 'Authorization': `Bearer ${token}`}, 
+                    body: JSON.stringify({receiver: activeDM, ...payload}) 
+                });
+                renderMsg({user: currentUser, ...payload});
             } else {
-                if(currentSocket) currentSocket.send(txt);
+                // Group Chat
+                if(currentSocket) currentSocket.send(JSON.stringify(payload));
             }
-            document.getElementById('chat-input').value = '';
+            input.value = '';
         }
 
         function closeChat() { document.getElementById('chat-screen').style.display = 'none'; document.querySelector('.dock-container').style.display = 'flex'; if(currentSocket) currentSocket.close(); activeDM = null; }
@@ -396,7 +376,7 @@
         async function submitCreate() { let t = document.getElementById('new-title').value; let l = document.getElementById('new-loc').value; let tm = document.getElementById('new-time').value || "Now"; let mx = document.getElementById('new-max').value || 4; let f = document.getElementById('new-img').files[0]; let img = f ? await resizeImage(f, 800, 800) : null; if(!t) return alert("Title needed"); await fetch('/create_hangout/', { method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`}, body:JSON.stringify({title:t, location:l, event_time:tm, max_people:parseInt(mx), image_data:img}) }); document.getElementById('create-modal').style.display='none'; loadFeed(); }
         function logout() { localStorage.clear(); location.reload(); }
         let mediaRecorder; let audioChunks = []; let isRecording = false; const micBtn = document.getElementById('mic-btn');
-        async function toggleRecord() { if (!isRecording) { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); mediaRecorder = new MediaRecorder(stream); mediaRecorder.start(); audioChunks = []; mediaRecorder.ondataavailable = e => audioChunks.push(e.data); isRecording = true; micBtn.classList.add('recording'); } catch(e) { alert("Mic denied."); } } else { if(mediaRecorder) { mediaRecorder.stop(); mediaRecorder.onstop = () => { const blob = new Blob(audioChunks, { type: 'audio/webm' }); const reader = new FileReader(); reader.readAsDataURL(blob); reader.onloadend = () => { if(currentSocket) currentSocket.send(reader.result); } }; } isRecording = false; micBtn.classList.remove('recording'); } }
+        async function toggleRecord() { if (!isRecording) { try { const stream = await navigator.mediaDevices.getUserMedia({ audio: true }); mediaRecorder = new MediaRecorder(stream); mediaRecorder.start(); audioChunks = []; mediaRecorder.ondataavailable = e => audioChunks.push(e.data); isRecording = true; micBtn.classList.add('recording'); } catch(e) { alert("Mic denied."); } } else { if(mediaRecorder) { mediaRecorder.stop(); mediaRecorder.onstop = () => { const blob = new Blob(audioChunks, { type: 'audio/webm' }); const reader = new FileReader(); reader.readAsDataURL(blob); reader.onloadend = () => { if(currentSocket) currentSocket.send(JSON.stringify({text: reader.result})); } }; } isRecording = false; micBtn.classList.remove('recording'); } }
         let selectedFileGlobal = null;
     </script>
 </body>
